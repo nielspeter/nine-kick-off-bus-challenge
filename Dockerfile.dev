@@ -1,0 +1,44 @@
+# Development Dockerfile with hot reload support
+FROM node:20-alpine
+
+# Install system dependencies
+RUN apk add --no-cache \
+    git \
+    openssh-client \
+    curl
+
+# Set working directory
+WORKDIR /app
+
+# Create node user for security
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nuxt -u 1001
+
+# Copy package files first for better caching
+COPY package*.json ./
+
+# Install dependencies in container (this ensures correct architecture)
+RUN npm ci --include=dev
+
+# Create directory structure for mounted volumes
+RUN mkdir -p pages components layouts server stores middleware composables assets public
+
+# Copy static config files that don't change often
+COPY nuxt.config.ts tsconfig.json ./
+COPY eslint.config.mjs ./
+
+# Set ownership for the entire app directory
+RUN chown -R nuxt:nodejs /app
+
+# Switch to non-root user
+USER nuxt
+
+# Expose ports
+EXPOSE 3000 24678
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:3000/api/health || exit 1
+
+# Start development server with file watching
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]

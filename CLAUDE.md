@@ -10,6 +10,7 @@ This is a Nuxt 3 application for the "Nine KickOff Bus Challenge" - an AI creati
 
 ### Development
 - `npm run dev` - Start development server on http://localhost:3000
+- `nohup npm run dev > /dev/null 2>&1 &` - Run development server in background
 - `npm run build` - Build for production
 - `npm run preview` - Preview production build locally
 - `npm run generate` - Generate static site

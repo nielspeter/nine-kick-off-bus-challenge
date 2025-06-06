@@ -1,0 +1,118 @@
+import { NuxtAuthHandler } from '#auth'
+import GoogleProvider from '@auth/core/providers/google'
+
+const runtimeConfig = useRuntimeConfig()
+
+export default NuxtAuthHandler({
+  secret: runtimeConfig.authSecret,
+  providers: [
+    GoogleProvider({
+      clientId: runtimeConfig.googleClientId,
+      clientSecret: runtimeConfig.googleClientSecret,
+    })
+  ],
+  callbacks: {
+    async signIn({ user, account }) {
+      if (account?.provider === 'google' && user.email) {
+        try {
+          // Create database connection
+          const { Sequelize } = await import('sequelize')
+          const { initModels } = await import('~/server/models')
+          
+          const sequelize = new Sequelize(runtimeConfig.databaseUrl, {
+            logging: false,
+            dialectOptions: {
+              ssl: process.env.NODE_ENV === 'production' ? {
+                require: true,
+                rejectUnauthorized: false
+              } : false
+            }
+          })
+
+          const { User } = initModels(sequelize)
+          
+          // Find existing user by email
+          let dbUser = await User.findOne({ where: { email: user.email } })
+          
+          if (dbUser) {
+            // Update existing user
+            await dbUser.update({
+              name: user.name || user.email,
+              picture: user.image || null
+            })
+          } else {
+            // Only allow Nine employees to sign up
+            if (!user.email.endsWith('@nine.dk')) {
+              console.log(`Sign-in denied for non-Nine employee: ${user.email}`)
+              await sequelize.close()
+              return false
+            }
+            
+            // Create new user (they should already exist from seeding)
+            console.log(`New Nine employee signing in: ${user.email}`)
+            await User.create({
+              id: `user_${user.email.split('@')[0]}`,
+              email: user.email,
+              name: user.name || user.email,
+              picture: user.image || null,
+              role: 'Consultant',
+              isAdmin: false
+            })
+          }
+          
+          await sequelize.close()
+          return true
+        } catch (error) {
+          console.error('Error saving user to database:', error)
+          return false
+        }
+      }
+      return false
+    },
+    async session({ session, token }) {
+      if (session.user && session.user.email) {
+        try {
+          // Create database connection
+          const { Sequelize } = await import('sequelize')
+          const { initModels } = await import('~/server/models')
+          
+          const sequelize = new Sequelize(runtimeConfig.databaseUrl, {
+            logging: false,
+            dialectOptions: {
+              ssl: process.env.NODE_ENV === 'production' ? {
+                require: true,
+                rejectUnauthorized: false
+              } : false
+            }
+          })
+
+          const { User } = initModels(sequelize)
+          
+          // Fetch user from database to get latest info
+          const dbUser = await User.findOne({ where: { email: session.user.email } })
+          if (dbUser) {
+            session.user.id = dbUser.id
+            session.user.isAdmin = dbUser.isAdmin
+            session.user.role = dbUser.role
+          }
+          
+          await sequelize.close()
+        } catch (error) {
+          console.error('Error fetching user from database:', error)
+        }
+      }
+      return session
+    },
+    async jwt({ token, user }) {
+      if (user) {
+        token.sub = user.id
+        token.email = user.email
+      }
+      return token
+    }
+  },
+  pages: {
+    signIn: '/auth/signin',
+    error: '/auth/error'
+  }
+})
