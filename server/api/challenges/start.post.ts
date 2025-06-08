@@ -24,7 +24,7 @@ export default defineEventHandler(async event => {
     }
 
     // Check competition state
-    const competitionState = getCompetitionState()
+    const competitionState = await getCompetitionState()
 
     if (!competitionState.isStarted) {
       throw createError({
