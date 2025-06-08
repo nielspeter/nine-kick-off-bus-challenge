@@ -61,6 +61,35 @@ export default defineEventHandler(async event => {
       })
     }
 
+    // Create user message object and publish immediately
+    const user = session.user as any // Type assertion to access id field
+    const userMessage = {
+      role: 'user',
+      content: message,
+      timestamp: new Date().toISOString(),
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+      },
+    }
+
+    // Publish user message immediately for real-time collaboration
+    try {
+      const redisClient = await getRedisClient()
+      await redisClient.publish(
+        `challenge:${submissionId}:chat`,
+        JSON.stringify({
+          type: 'message',
+          message: userMessage,
+          submissionId,
+        })
+      )
+    } catch (redisError) {
+      console.error('Failed to publish user message to Redis:', redisError)
+      // Don't fail the request if Redis is unavailable
+    }
+
     // Prepare AI request based on provider
     let aiResponse
     const team = (submission as any).team
@@ -95,9 +124,8 @@ Remember: This is a creativity competition, so focus on innovative and unique ap
           messages: [
             { role: 'system', content: systemPrompt },
             ...(submission.chatHistory as any[]),
-            { role: 'user', content: message },
+            { role: 'user', content: userMessage.content },
           ],
-          max_tokens: 1000,
           temperature: 0.8,
         }),
       })
@@ -119,9 +147,11 @@ Remember: This is a creativity competition, so focus on innovative and unique ap
         },
         body: JSON.stringify({
           model: 'claude-3-sonnet-20240229',
-          max_tokens: 1000,
           system: systemPrompt,
-          messages: [...(submission.chatHistory as any[]), { role: 'user', content: message }],
+          messages: [
+            ...(submission.chatHistory as any[]),
+            { role: 'user', content: userMessage.content },
+          ],
         }),
       })
 
@@ -138,19 +168,7 @@ Remember: This is a creativity competition, so focus on innovative and unique ap
       })
     }
 
-    // Update chat history
-    const user = session.user as any // Type assertion to access id field
-    const userMessage = {
-      role: 'user',
-      content: message,
-      timestamp: new Date().toISOString(),
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-      },
-    }
-
+    // Create assistant message
     const assistantMessage = {
       role: 'assistant',
       content: aiResponse,
@@ -158,27 +176,16 @@ Remember: This is a creativity competition, so focus on innovative and unique ap
       provider,
     }
 
+    // Update chat history with both messages
     const updatedChatHistory = [...(submission.chatHistory as any[]), userMessage, assistantMessage]
 
     await submission.update({
       chatHistory: updatedChatHistory,
     })
 
-    // Publish messages to Redis for real-time collaboration
+    // Publish AI response to Redis for real-time collaboration
     try {
       const redisClient = await getRedisClient()
-
-      // Publish user message
-      await redisClient.publish(
-        `challenge:${submissionId}:chat`,
-        JSON.stringify({
-          type: 'message',
-          message: userMessage,
-          submissionId,
-        })
-      )
-
-      // Publish AI response
       await redisClient.publish(
         `challenge:${submissionId}:chat`,
         JSON.stringify({
@@ -188,7 +195,7 @@ Remember: This is a creativity competition, so focus on innovative and unique ap
         })
       )
     } catch (redisError) {
-      console.error('Failed to publish to Redis, but continuing:', redisError)
+      console.error('Failed to publish AI response to Redis:', redisError)
       // Don't fail the request if Redis is unavailable
     }
 

@@ -52,7 +52,10 @@ export default defineNitroPlugin(async nitroApp => {
   }
 })
 
-async function autoSeedDatabase(sequelize: any, { User, Team, Task, Submission, CompetitionSettings }: any) {
+async function autoSeedDatabase(
+  sequelize: any,
+  { User, Team, Task, Submission, CompetitionSettings }: any
+) {
   try {
     // Check if database needs seeding
     const [userCount, taskCount] = await Promise.all([User.count(), Task.count()])

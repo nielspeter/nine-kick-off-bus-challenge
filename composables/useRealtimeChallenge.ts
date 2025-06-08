@@ -102,6 +102,12 @@ export function useRealtimeChallenge(submissionId: string) {
         handleUserActivity(data.data)
         break
 
+      case 'users_sync':
+        // Sync active users from server
+        activeUsers.value = data.data.activeUsers || []
+        console.log(`🔄 Synced active users: ${activeUsers.value.length}`)
+        break
+
       case 'answer_update':
         // Handle real-time final answer updates
         window.dispatchEvent(
@@ -109,6 +115,11 @@ export function useRealtimeChallenge(submissionId: string) {
             detail: data.data,
           })
         )
+        break
+
+      case 'heartbeat':
+        // Server heartbeat - connection is alive
+        lastActivity.value = data.timestamp
         break
 
       case 'error':
@@ -183,6 +194,24 @@ export function useRealtimeChallenge(submissionId: string) {
       if (!document.hidden && !isConnected.value) {
         connect()
       }
+    })
+
+    // Additional cleanup when page is about to unload
+    const handleBeforeUnload = () => {
+      disconnect()
+    }
+
+    const handlePageHide = () => {
+      disconnect()
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    window.addEventListener('pagehide', handlePageHide)
+
+    // Cleanup event listeners when component unmounts
+    onUnmounted(() => {
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+      window.removeEventListener('pagehide', handlePageHide)
     })
   }
 

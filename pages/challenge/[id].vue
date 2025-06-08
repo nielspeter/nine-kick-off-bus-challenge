@@ -85,7 +85,7 @@
         </div>
 
         <!-- Chat Messages -->
-        <div ref="chatContainer" class="h-96 overflow-y-auto p-4 space-y-4">
+        <div ref="chatContainer" class="h-[600px] overflow-y-auto p-4 space-y-4">
           <div v-if="chatHistory.length === 0" class="text-center text-gray-500 py-8">
             <Icon
               name="heroicons:chat-bubble-left-right"

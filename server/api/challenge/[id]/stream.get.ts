@@ -103,7 +103,31 @@ export default defineEventHandler(async event => {
           }
         })
 
-        // Publish user joined event
+        // Add user to active users set in Redis with a simple key
+        const activeUsersKey = `challenge:${submissionId}:active`
+        const userInfo = {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          lastSeen: Date.now(),
+        }
+        await redisClient.sAdd(activeUsersKey, JSON.stringify(userInfo))
+
+        // Set expiration for the active users key (auto cleanup after 1 hour of inactivity)
+        await redisClient.expire(activeUsersKey, 3600)
+
+        // Get current active users and send to new connection
+        const activeUsersList = await redisClient.sMembers(activeUsersKey)
+        const activeUsers = activeUsersList.map(userStr => JSON.parse(userStr))
+
+        // Send current active users to the new connection immediately
+        sendEvent({
+          type: 'users_sync',
+          data: { activeUsers },
+          timestamp: new Date().toISOString(),
+        })
+
+        // Publish user joined event to other clients
         await redisClient.publish(
           `challenge:${submissionId}:activity`,
           JSON.stringify({
@@ -131,9 +155,28 @@ export default defineEventHandler(async event => {
     event.node.req.on('close', async () => {
       console.log(`🔌 SSE connection closed for submission: ${submissionId}`)
       try {
-        // Publish user left event
+        // Remove user from active users set and publish user left event
         if (redisSubscriber) {
           const redisClient = await getRedisClient()
+
+          // Remove user from active users set
+          const activeUsersKey = `challenge:${submissionId}:active`
+
+          // Get all members and find the one matching this user ID
+          const activeUsersList = await redisClient.sMembers(activeUsersKey)
+          for (const userStr of activeUsersList) {
+            try {
+              const userData = JSON.parse(userStr)
+              if (userData.id === user.id) {
+                await redisClient.sRem(activeUsersKey, userStr)
+                break
+              }
+            } catch (e) {
+              // Invalid JSON, remove it
+              await redisClient.sRem(activeUsersKey, userStr)
+            }
+          }
+
           await redisClient.publish(
             `challenge:${submissionId}:activity`,
             JSON.stringify({
@@ -153,6 +196,23 @@ export default defineEventHandler(async event => {
       } catch (error) {
         console.error('Error during SSE cleanup:', error)
       }
+    })
+
+    // Send periodic heartbeat to detect disconnected clients
+    const heartbeatInterval = setInterval(() => {
+      if (event.node.res.writable) {
+        sendEvent({
+          type: 'heartbeat',
+          timestamp: new Date().toISOString(),
+        })
+      } else {
+        clearInterval(heartbeatInterval)
+      }
+    }, 30000) // Every 30 seconds
+
+    // Clean up interval on connection close
+    event.node.req.on('close', () => {
+      clearInterval(heartbeatInterval)
     })
 
     // Keep connection alive
