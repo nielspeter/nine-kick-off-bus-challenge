@@ -1,4 +1,5 @@
 import { getServerSession } from '#auth'
+import { getRedisClient } from '~/server/utils/redis'
 
 export default defineEventHandler(async event => {
   try {
@@ -138,15 +139,58 @@ Remember: This is a creativity competition, so focus on innovative and unique ap
     }
 
     // Update chat history
-    const updatedChatHistory = [
-      ...(submission.chatHistory as any[]),
-      { role: 'user', content: message, timestamp: new Date().toISOString() },
-      { role: 'assistant', content: aiResponse, timestamp: new Date().toISOString(), provider },
-    ]
+    const user = session.user as any // Type assertion to access id field
+    const userMessage = {
+      role: 'user',
+      content: message,
+      timestamp: new Date().toISOString(),
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+      },
+    }
+
+    const assistantMessage = {
+      role: 'assistant',
+      content: aiResponse,
+      timestamp: new Date().toISOString(),
+      provider,
+    }
+
+    const updatedChatHistory = [...(submission.chatHistory as any[]), userMessage, assistantMessage]
 
     await submission.update({
       chatHistory: updatedChatHistory,
     })
+
+    // Publish messages to Redis for real-time collaboration
+    try {
+      const redisClient = await getRedisClient()
+
+      // Publish user message
+      await redisClient.publish(
+        `challenge:${submissionId}:chat`,
+        JSON.stringify({
+          type: 'message',
+          message: userMessage,
+          submissionId,
+        })
+      )
+
+      // Publish AI response
+      await redisClient.publish(
+        `challenge:${submissionId}:chat`,
+        JSON.stringify({
+          type: 'message',
+          message: assistantMessage,
+          submissionId,
+        })
+      )
+    } catch (redisError) {
+      console.error('Failed to publish to Redis, but continuing:', redisError)
+      // Don't fail the request if Redis is unavailable
+    }
 
     await sequelize.close()
 

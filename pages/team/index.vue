@@ -195,18 +195,12 @@
           </div>
           <div class="flex flex-wrap gap-2">
             <span
-              v-for="member in team.members?.slice(0, 3)"
+              v-for="member in team.members"
               :key="member.id"
               class="bg-gray-100 text-gray-700 px-2 py-1 rounded text-sm"
             >
               {{ member.name }}
               <span v-if="member.id === team.captainId" class="text-primary">👑</span>
-            </span>
-            <span
-              v-if="(team.members?.length || 0) > 3"
-              class="bg-gray-100 text-gray-700 px-2 py-1 rounded text-sm"
-            >
-              +{{ (team.members?.length || 0) - 3 }} more
             </span>
           </div>
         </div>

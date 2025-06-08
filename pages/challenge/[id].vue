@@ -62,8 +62,26 @@
       <!-- AI Chat Interface -->
       <div class="bg-white rounded-lg shadow-md overflow-hidden">
         <div class="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4">
-          <h2 class="text-xl font-semibold">AI Collaboration Space</h2>
-          <p class="text-blue-100">Work with AI to solve this challenge creatively</p>
+          <div class="flex justify-between items-start">
+            <div>
+              <h2 class="text-xl font-semibold">AI Collaboration Space</h2>
+              <p class="text-blue-100">Work with AI to solve this challenge creatively</p>
+            </div>
+            <div class="flex items-center gap-2 text-sm">
+              <div
+                :class="[
+                  'w-2 h-2 rounded-full',
+                  isConnected ? 'bg-green-400 animate-pulse' : 'bg-red-400',
+                ]"
+              />
+              <span class="text-blue-100">
+                {{ isConnected ? 'Live' : 'Offline' }}
+              </span>
+              <span v-if="activeUsers.length > 0" class="text-blue-200 ml-2">
+                {{ activeUsers.length }} active
+              </span>
+            </div>
+          </div>
         </div>
 
         <!-- Chat Messages -->
@@ -77,7 +95,7 @@
           </div>
 
           <div
-            v-for="(message, index) in chatHistory"
+            v-for="(message, index) in displayChatHistory"
             :key="index"
             class="flex gap-3"
             :class="message.role === 'user' ? 'justify-end' : 'justify-start'"
@@ -85,6 +103,7 @@
             <div
               v-if="message.role === 'assistant'"
               class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0"
+              :title="getModelName(message.provider)"
             >
               🤖
             </div>
@@ -92,21 +111,28 @@
             <div
               class="max-w-3xl px-4 py-2 rounded-lg"
               :class="
-                message.role === 'user' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-900'
+                message.role === 'user' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-900'
               "
             >
+              <div v-if="message.role === 'user' && message.user" class="text-xs opacity-70 mb-1">
+                {{ message.user.name }}
+              </div>
               <div class="whitespace-pre-wrap">{{ message.content }}</div>
+              <!-- Debug role -->
+              <div class="text-xs mt-1 opacity-50">[Role: {{ message.role }}]</div>
               <div class="text-xs opacity-70 mt-1">
                 {{ formatTime(message.timestamp) }}
-                <span v-if="message.provider" class="ml-2">({{ message.provider }})</span>
+                <span v-if="message.provider" class="ml-2">
+                  • {{ getModelName(message.provider) }}
+                </span>
               </div>
             </div>
 
             <div
               v-if="message.role === 'user'"
-              class="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0 text-white"
+              class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0 text-white"
             >
-              👤
+              {{ message.user?.name?.charAt(0) || '👤' }}
             </div>
           </div>
 
@@ -248,6 +274,15 @@ const { data: session } = useAuth()
 const route = useRoute()
 const submissionId = route.params.id as string
 
+// Real-time collaboration
+const {
+  chatHistory: realtimeChatHistory,
+  activeUsers,
+  isConnected,
+  updateChatHistory,
+  publishTyping,
+} = useRealtimeChallenge(submissionId)
+
 const loading = ref(true)
 const error = ref('')
 const submission = ref(null)
@@ -258,6 +293,22 @@ const isTyping = ref(false)
 const finalAnswer = ref('')
 const showSubmitModal = ref(false)
 const chatContainer = ref(null)
+
+// Merge local and real-time chat history
+const displayChatHistory = computed(() => {
+  // If local chat has more recent messages (user just sent something), prefer local
+  // Otherwise use real-time chat history for synchronized view
+  const localLength = chatHistory.value.length
+  const realtimeLength = realtimeChatHistory.value.length
+
+  // Use local if it has more messages (user just sent something)
+  // or if real-time is empty
+  if (localLength > realtimeLength || realtimeLength === 0) {
+    return chatHistory.value
+  }
+
+  return realtimeChatHistory.value
+})
 
 function getDifficultyText(difficulty: number) {
   const levels = ['Easy', 'Medium', 'Hard']
@@ -273,12 +324,40 @@ function formatTime(timestamp: string) {
   return new Date(timestamp).toLocaleString()
 }
 
+function getModelName(provider: string) {
+  switch (provider) {
+    case 'openai':
+      return 'GPT-4'
+    case 'claude':
+      return 'Claude 3 Sonnet'
+    default:
+      return provider || 'AI'
+  }
+}
+
 async function sendMessage() {
   if (!newMessage.value.trim() || isTyping.value) return
 
   const message = newMessage.value.trim()
   newMessage.value = ''
   isTyping.value = true
+
+  // Add user message immediately to chat history for instant feedback
+  const user = session.value?.user as any // Type assertion to access id field
+  const userMessage = {
+    role: 'user',
+    content: message,
+    timestamp: new Date().toISOString(),
+    user: {
+      id: user?.id,
+      name: user?.name,
+      email: user?.email,
+    },
+  }
+
+  // Add to local chat history immediately
+  chatHistory.value = [...chatHistory.value, userMessage]
+  scrollToBottom()
 
   try {
     const response = await $fetch('/api/ai/chat', {
@@ -290,11 +369,15 @@ async function sendMessage() {
       },
     })
 
+    // Update with complete chat history from server (includes AI response)
     chatHistory.value = response.chatHistory
     scrollToBottom()
   } catch (error) {
     console.error('Failed to send message:', error)
     alert('Failed to send message: ' + error.message)
+
+    // Remove the user message from chat if API call failed
+    chatHistory.value = chatHistory.value.filter(m => m !== userMessage)
   } finally {
     isTyping.value = false
   }
@@ -359,7 +442,11 @@ async function fetchSubmission() {
   try {
     const response = await $fetch(`/api/submissions/${submissionId}`)
     submission.value = response.submission
-    chatHistory.value = response.submission.chatHistory || []
+
+    // Initialize both local and real-time chat history
+    const initialHistory = response.submission.chatHistory || []
+    chatHistory.value = initialHistory
+    updateChatHistory(initialHistory)
 
     // Set final answer if exists
     if (response.submission.finalAnswers && response.submission.finalAnswers.length > 0) {
@@ -374,11 +461,18 @@ async function fetchSubmission() {
 
 onMounted(() => {
   fetchSubmission()
+
+  // Listen for real-time chat message events
+  window.addEventListener('chat-message-added', scrollToBottom)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('chat-message-added', scrollToBottom)
 })
 
 // Auto-scroll when new messages arrive
 watch(
-  chatHistory,
+  displayChatHistory,
   () => {
     scrollToBottom()
   },
