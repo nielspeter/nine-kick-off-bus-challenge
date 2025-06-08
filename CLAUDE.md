@@ -130,3 +130,111 @@ The application uses **@sidebase/nuxt-auth** with dual authentication modes:
 - **Session Management**: JWT tokens with 30-day expiration
 - **Frontend Integration**: `useAuth()` composable for session access
 - **Middleware**: `~/middleware/auth.ts` protects routes (currently disabled globally)
+
+## Admin Access Control
+
+### Recommended Approach (Following @sidebase/nuxt-auth best practices)
+
+The application implements admin-only access using the recommended patterns from @sidebase/nuxt-auth documentation:
+
+### Page Protection Strategy
+1. **Authentication Layer**: Use `definePageMeta()` with auth configuration
+2. **Authorization Layer**: Client-side admin status checking with error boundaries
+3. **UI Control**: Conditional navigation menu items based on admin status
+
+### Implementation Pattern
+
+#### 1. Page-Level Protection (`pages/admin/index.vue`)
+```vue
+<script setup>
+// Protect page - redirect unauthenticated users to signin
+definePageMeta({
+  auth: {
+    navigateUnauthenticatedTo: '/auth/signin'
+  }
+})
+
+// Check admin access on component level
+const { data: session, status } = useAuth()
+const isAdmin = ref(false)
+
+async function checkAdminAccess() {
+  if (status.value === 'unauthenticated') {
+    await navigateTo('/auth/signin')
+    return
+  }
+
+  const user = session.value?.user
+  const userResponse = await $fetch(`/api/users/${user.id}`)
+  
+  if (!userResponse.success || !userResponse.user?.isAdmin) {
+    throw createError({
+      statusCode: 403,
+      statusMessage: 'Access denied. Admin privileges required.'
+    })
+  }
+  
+  isAdmin.value = true
+}
+
+watch(status, checkAdminAccess, { immediate: true })
+</script>
+```
+
+#### 2. API Endpoint for User Details (`server/api/users/[id].get.ts`)
+```typescript
+export default defineEventHandler(async (event) => {
+  const userId = getRouterParam(event, 'id')
+  // ... fetch user from database
+  
+  return {
+    success: true,
+    user: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      isAdmin: user.isAdmin  // Key field for admin access
+    }
+  }
+})
+```
+
+#### 3. Navigation Menu Control (`layouts/default.vue`)
+```vue
+<template>
+  <NuxtLink 
+    v-if="userIsAdmin"
+    to="/admin" 
+    class="text-gray-700 hover:text-primary transition-colors"
+  >
+    Admin
+  </NuxtLink>
+</template>
+
+<script setup>
+const userIsAdmin = ref(false)
+
+async function checkUserAdmin() {
+  const currentUser = user.value
+  if (!currentUser?.id) return
+  
+  const userResponse = await $fetch(`/api/users/${currentUser.id}`)
+  userIsAdmin.value = userResponse.success && userResponse.user?.isAdmin === true
+}
+
+watch(user, checkUserAdmin, { immediate: true })
+</script>
+```
+
+### Security Considerations
+- **Client-side checks are for UX only** - Always validate admin access on the server
+- **API endpoints should verify admin status** before returning sensitive data
+- **Error boundaries** provide graceful handling of access denied scenarios
+- **Database-driven** admin status ensures centralized permission management
+
+### Why This Approach?
+- **Follows @sidebase/nuxt-auth best practices** from official documentation
+- **Avoids complex custom middleware** that can cause unexpected behavior
+- **Separation of concerns**: Authentication vs Authorization
+- **Progressive enhancement**: Works with SSR and client-side navigation
+- **Error boundary protection**: Clear error messages for unauthorized access

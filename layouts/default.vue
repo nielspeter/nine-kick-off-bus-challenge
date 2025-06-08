@@ -48,6 +48,7 @@
               Users
             </NuxtLink>
             <NuxtLink 
+              v-if="userIsAdmin"
               to="/admin" 
               class="text-gray-700 hover:text-primary transition-colors"
               :class="{ 'text-primary font-medium': $route.path.startsWith('/admin') }"
@@ -140,6 +141,7 @@
               Users
             </NuxtLink>
             <NuxtLink 
+              v-if="userIsAdmin"
               to="/admin" 
               class="block px-3 py-2 text-gray-700 hover:text-primary hover:bg-gray-50 rounded-md"
               @click="showMobileMenu = false"
@@ -208,6 +210,36 @@
 const showMobileMenu = ref(false)
 const { data: session, signOut } = useAuth()
 const user = computed(() => session.value?.user)
+const userIsAdmin = ref(false)
+
+// Check if current user is admin
+async function checkUserAdmin() {
+  const currentUser = user.value as { id?: string } | undefined
+  if (!currentUser?.id) {
+    userIsAdmin.value = false
+    return
+  }
+
+  try {
+    const userResponse = await $fetch(`/api/users/${currentUser.id}`) as {
+      success: boolean
+      user?: { isAdmin: boolean }
+    }
+    userIsAdmin.value = userResponse.success && userResponse.user?.isAdmin === true
+  } catch (error) {
+    console.error('Failed to check admin status:', error)
+    userIsAdmin.value = false
+  }
+}
+
+// Watch for user changes to check admin status
+watch(user, async (newUser) => {
+  if (newUser) {
+    await checkUserAdmin()
+  } else {
+    userIsAdmin.value = false
+  }
+}, { immediate: true })
 
 // Close mobile menu when route changes
 const route = useRoute()

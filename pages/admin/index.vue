@@ -164,8 +164,65 @@
 </template>
 
 <script setup lang="ts">
+// Protect page - redirect unauthenticated users to signin
+definePageMeta({
+  auth: {
+    navigateUnauthenticatedTo: '/auth/signin'
+  }
+})
+
+// Check admin access on component mount
+const { data: session, status } = useAuth()
+const isAdmin = ref(false)
 const loading = ref(true)
 const activeTab = ref('teams')
+
+// Check if current user is admin
+async function checkAdminAccess() {
+  if (status.value === 'loading') {
+    // Wait for auth to load
+    return
+  }
+  
+  if (status.value === 'unauthenticated') {
+    await navigateTo('/auth/signin')
+    return
+  }
+
+  const user = session.value?.user as { id?: string }
+  if (!user?.id) {
+    throw createError({
+      statusCode: 401,
+      statusMessage: 'User session invalid'
+    })
+  }
+
+  try {
+    const userResponse = await $fetch(`/api/users/${user.id}`) as {
+      success: boolean
+      user?: { isAdmin: boolean }
+    }
+    
+    if (!userResponse.success || !userResponse.user?.isAdmin) {
+      throw createError({
+        statusCode: 403,
+        statusMessage: 'Access denied. Admin privileges required.'
+      })
+    }
+    
+    isAdmin.value = true
+  } catch (error) {
+    console.error('Admin access check failed:', error)
+    throw error
+  }
+}
+
+// Watch for auth status changes
+watch(status, async (newStatus) => {
+  if (newStatus !== 'loading') {
+    await checkAdminAccess()
+  }
+}, { immediate: true })
 
 const teams = ref([])
 const submissions = ref([])
@@ -222,6 +279,10 @@ function reviewSubmission(submission: any) {
 }
 
 async function fetchAdminData() {
+  if (!isAdmin.value) {
+    return
+  }
+  
   loading.value = true
   try {
     // Fetch teams
@@ -246,7 +307,10 @@ async function fetchAdminData() {
   }
 }
 
-onMounted(() => {
-  fetchAdminData()
+// Watch for admin status change to fetch data
+watch(isAdmin, async (newIsAdmin) => {
+  if (newIsAdmin) {
+    await fetchAdminData()
+  }
 })
 </script>
