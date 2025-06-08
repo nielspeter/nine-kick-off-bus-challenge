@@ -276,17 +276,23 @@ function reviewSubmission(submission: any) {
 
 async function fetchAdminData() {
   if (!isAdmin.value) {
+    console.log('🚫 Not fetching admin data - user is not admin')
     return
   }
   
+  console.log('🔄 Fetching admin data...')
   loadingAdminData.value = true
   try {
     // Fetch teams
+    console.log('📊 Fetching teams...')
     const teamsResponse = await $fetch('/api/teams')
+    console.log('✅ Teams response:', teamsResponse)
     teams.value = teamsResponse.teams
 
     // Fetch all submissions
+    console.log('📋 Fetching submissions...')
     const submissionsResponse = await $fetch('/api/admin/submissions')
+    console.log('✅ Submissions response:', submissionsResponse)
     submissions.value = submissionsResponse.submissions || []
 
     // Calculate stats
@@ -296,8 +302,10 @@ async function fetchAdminData() {
       completedSubmissions: submissions.value.filter(sub => sub.status === 'completed').length,
       activeSubmissions: submissions.value.filter(sub => sub.status === 'in_progress').length
     }
+    
+    console.log('📈 Calculated stats:', stats.value)
   } catch (error) {
-    console.error('Failed to fetch admin data:', error)
+    console.error('❌ Failed to fetch admin data:', error)
   } finally {
     loadingAdminData.value = false
   }
@@ -308,5 +316,5 @@ watch(isAdmin, async (newIsAdmin) => {
   if (newIsAdmin) {
     await fetchAdminData()
   }
-})
+}, { immediate: true })
 </script>
