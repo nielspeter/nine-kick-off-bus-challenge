@@ -164,6 +164,10 @@
             <Icon name="heroicons:chat-bubble-left-right" class="w-8 h-8 mx-auto mb-2" />
             <p>Chat is disabled for completed challenges</p>
           </div>
+          <div v-else-if="isCompetitionPaused" class="text-center py-4 text-orange-600">
+            <Icon name="heroicons:pause-circle" class="w-8 h-8 mx-auto mb-2" />
+            <p>Competition is paused. Chat will resume when competition continues.</p>
+          </div>
           <form v-else class="flex flex-col sm:flex-row gap-2" @submit.prevent="sendMessage">
             <select
               v-model="selectedProvider"
@@ -213,7 +217,12 @@
         </div>
 
         <div v-else class="mt-4 flex justify-end">
+          <div v-if="isCompetitionPaused" class="text-orange-600 text-sm">
+            <Icon name="heroicons:pause-circle" class="w-4 h-4 inline mr-1" />
+            Submission disabled while competition is paused
+          </div>
           <button
+            v-else
             :disabled="!finalAnswer.trim()"
             class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50"
             @click="showSubmitModal = true"
@@ -274,6 +283,9 @@ const { data: session } = useAuth()
 const route = useRoute()
 const submissionId = route.params.id as string
 
+// Competition state
+const competitionState = ref(null)
+
 // Real-time collaboration
 const {
   chatHistory: realtimeChatHistory,
@@ -293,6 +305,11 @@ const isTyping = ref(false)
 const finalAnswer = ref('')
 const showSubmitModal = ref(false)
 const chatContainer = ref(null)
+
+// Computed property to check if competition is paused
+const isCompetitionPaused = computed(() => {
+  return competitionState.value?.isPaused === true
+})
 
 // Merge local and real-time chat history
 const displayChatHistory = computed(() => {
@@ -427,6 +444,14 @@ async function forfeitChallenge() {
   }
 }
 
+async function fetchCompetitionState() {
+  try {
+    competitionState.value = await $fetch('/api/competition/settings')
+  } catch (error) {
+    console.error('Failed to fetch competition state:', error)
+  }
+}
+
 function scrollToBottom() {
   nextTick(() => {
     if (chatContainer.value) {
@@ -461,6 +486,7 @@ async function fetchSubmission() {
 
 onMounted(() => {
   fetchSubmission()
+  fetchCompetitionState()
 
   // Listen for real-time chat message events
   window.addEventListener('chat-message-added', scrollToBottom)

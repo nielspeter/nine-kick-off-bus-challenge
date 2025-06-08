@@ -11,25 +11,11 @@ export default defineNitroPlugin(async nitroApp => {
 
     console.log('📝 DATABASE_URL found, initializing database...')
 
-    const { Sequelize } = await import('sequelize')
+    // Use the singleton database connection instead of creating a new one
+    const { getDatabase } = await import('~/server/utils/db')
     const { initModels } = await import('~/server/models')
 
-    // Create Sequelize instance
-    const sequelize = new Sequelize(config.databaseUrl, {
-      logging: false, // Set to console.log to debug SQL queries
-      dialectOptions: {
-        ssl:
-          process.env.NODE_ENV === 'production'
-            ? {
-                require: true,
-                rejectUnauthorized: false,
-              }
-            : false,
-      },
-    })
-
-    // Test connection
-    await sequelize.authenticate()
+    const sequelize = await getDatabase()
     console.log('✅ Database connection established successfully')
 
     // Initialize models

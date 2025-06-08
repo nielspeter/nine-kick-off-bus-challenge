@@ -1,4 +1,6 @@
 import { getServerSession } from '#auth'
+import { getDatabase } from '~/server/utils/db'
+import { initModels } from '~/server/models'
 
 export default defineEventHandler(async event => {
   try {
@@ -21,11 +23,7 @@ export default defineEventHandler(async event => {
       })
     }
 
-    const config = useRuntimeConfig()
-    const { Sequelize } = await import('sequelize')
-    const { initModels } = await import('~/server/models')
-
-    const sequelize = new Sequelize(config.databaseUrl, { logging: false })
+    const sequelize = await getDatabase()
     const { Submission, Task, Team } = initModels(sequelize)
 
     // Find submission
@@ -45,7 +43,6 @@ export default defineEventHandler(async event => {
     })
 
     if (!submission) {
-      await sequelize.close()
       throw createError({
         statusCode: 404,
         statusMessage: 'Submission not found',
@@ -53,10 +50,20 @@ export default defineEventHandler(async event => {
     }
 
     if (submission.status !== 'in_progress') {
-      await sequelize.close()
       throw createError({
         statusCode: 400,
         statusMessage: 'Challenge is not active',
+      })
+    }
+
+    // Check if competition is paused
+    const { getCompetitionState } = await import('~/server/utils/competitionState')
+    const competitionState = await getCompetitionState()
+
+    if (competitionState.isPaused) {
+      throw createError({
+        statusCode: 403,
+        statusMessage: 'Competition is currently paused. Please wait for it to resume.',
       })
     }
 
@@ -66,8 +73,6 @@ export default defineEventHandler(async event => {
       finalAnswers,
       submittedAt: new Date(),
     })
-
-    await sequelize.close()
 
     return {
       success: true,

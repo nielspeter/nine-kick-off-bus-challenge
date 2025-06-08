@@ -65,18 +65,18 @@
             <!-- Current user -->
             <div v-if="user" class="hidden md:flex items-center space-x-2">
               <img
-                v-if="(user as any).picture"
-                :src="(user as any).picture"
-                :alt="(user as any).name"
+                v-if="user.image"
+                :src="user.image"
+                :alt="user.name"
                 class="w-8 h-8 rounded-full"
               />
               <div
                 v-else
                 class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-medium"
               >
-                {{ (user as any).name?.charAt(0) || '?' }}
+                {{ user.name?.charAt(0) || '?' }}
               </div>
-              <span class="text-gray-700">{{ (user as any).name }}</span>
+              <span class="text-gray-700">{{ user.name }}</span>
               <button class="text-gray-500 hover:text-gray-700 text-sm" @click="logout">
                 Logout
               </button>
@@ -161,18 +161,18 @@
             <div v-if="user" class="border-t pt-2 mt-2">
               <div class="px-3 py-2 flex items-center space-x-2">
                 <img
-                  v-if="(user as any).picture"
-                  :src="(user as any).picture"
-                  :alt="(user as any).name"
+                  v-if="user.image"
+                  :src="user.image"
+                  :alt="user.name"
                   class="w-6 h-6 rounded-full"
                 />
                 <div
                   v-else
                   class="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-medium"
                 >
-                  {{ (user as any).name?.charAt(0) || '?' }}
+                  {{ user.name?.charAt(0) || '?' }}
                 </div>
-                <span class="text-gray-700 text-sm">{{ (user as any).name }}</span>
+                <span class="text-gray-700 text-sm">{{ user.name }}</span>
               </div>
               <button
                 class="w-full text-left px-3 py-2 text-red-600 hover:bg-red-50 rounded-md"

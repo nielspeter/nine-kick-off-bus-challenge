@@ -26,14 +26,13 @@ export default NuxtAuthHandler({
         }
 
         try {
-          const { Sequelize } = await import('sequelize')
+          const { getDatabase } = await import('~/server/utils/db')
           const { initModels } = await import('~/server/models')
 
-          const sequelize = new Sequelize(config.databaseUrl, { logging: false })
+          const sequelize = await getDatabase()
           const { User } = initModels(sequelize)
 
           const user = await User.findByPk(credentials.userId as string)
-          await sequelize.close()
 
           if (!user) {
             console.log('❌ User not found:', credentials.userId)

@@ -1,10 +1,9 @@
 export default defineEventHandler(async event => {
   try {
-    const config = useRuntimeConfig()
-    const { Sequelize } = await import('sequelize')
+    const { getDatabase } = await import('~/server/utils/db')
     const { initModels } = await import('~/server/models')
 
-    const sequelize = new Sequelize(config.databaseUrl, { logging: false })
+    const sequelize = await getDatabase()
     const { Team, User, Submission } = initModels(sequelize)
 
     // Get all teams with their completed submissions count
@@ -61,8 +60,6 @@ export default defineEventHandler(async event => {
       }
       return new Date(b.lastActivity).getTime() - new Date(a.lastActivity).getTime()
     })
-
-    await sequelize.close()
 
     return {
       success: true,
