@@ -16,8 +16,9 @@ This is a Nuxt 3 application for the "Nine KickOff Bus Challenge" - an AI creati
 - `npm run generate` - Generate static site
 
 ### Code Quality
-- No dedicated lint command configured yet. Consider adding `nuxt lint` to package.json scripts.
-- TypeScript is configured and will type-check during build
+- `npm run lint` - ESLint with Prettier integration for code formatting
+- `npm run build` - TypeScript type-checking occurs during build
+- ESLint configured with disabled 'any' type checking for development flexibility
 
 ## Architecture Overview
 
@@ -257,3 +258,123 @@ After authentication, the session endpoint (`/api/auth/session`) returns:
 ```
 
 This makes admin checking as simple as: `session.value?.user?.isAdmin === true`
+
+## Page Protection Patterns
+
+### Authentication Middleware for Pages
+
+The application uses @sidebase/nuxt-auth middleware patterns for protecting pages:
+
+#### 1. Global Middleware (Disabled by Default)
+```typescript
+// nuxt.config.ts
+auth: {
+  globalAppMiddleware: {
+    isEnabled: false, // Set to true to protect all pages by default
+  },
+}
+```
+
+#### 2. Page-Level Protection Patterns
+
+**Standard Auth Protection (Redirect to Sign-in):**
+```vue
+<script setup>
+definePageMeta({
+  middleware: 'auth', // Uses built-in auth middleware
+})
+
+// OR with custom redirect:
+definePageMeta({
+  auth: {
+    navigateUnauthenticatedTo: '/auth/signin',
+  },
+})
+</script>
+```
+
+**Examples of Protected Pages:**
+- `/pages/challenge/[id].vue` - Requires authentication to access challenges
+- `/pages/team/index.vue` - Requires authentication for team management
+- `/pages/tasks/index.vue` - Requires authentication to view and start challenges
+
+#### 3. Server-Side API Protection
+
+**All sensitive API endpoints must include authentication checks:**
+```typescript
+import { getServerSession } from '#auth'
+
+export default defineEventHandler(async event => {
+  // Verify user session
+  const session = await getServerSession(event)
+  if (!session?.user?.email) {
+    throw createError({
+      statusCode: 401,
+      statusMessage: 'Authentication required',
+    })
+  }
+  
+  // Continue with protected logic...
+})
+```
+
+**Protected API Endpoints:**
+- `/api/ai/chat.post.ts` - AI chat functionality
+- `/api/challenges/start.post.ts` - Starting challenges
+- `/api/challenges/submit.post.ts` - Submitting challenge solutions
+- `/api/submissions/[id].get.ts` - Viewing submission details
+- `/api/submissions/[id]/forfeit.post.ts` - Forfeiting challenges
+- All team management endpoints (`/api/teams/**`)
+
+#### 4. Frontend Authentication Patterns
+
+**Using Auth Composable:**
+```vue
+<script setup>
+const { data: session, status, signOut } = useAuth()
+const user = computed(() => session.value?.user)
+
+// Check authentication status
+const isAuthenticated = computed(() => status.value === 'authenticated')
+const isAdmin = computed(() => user.value?.isAdmin === true)
+</script>
+
+<template>
+  <!-- Conditional rendering based on auth status -->
+  <div v-if="isAuthenticated">
+    <p>Welcome, {{ user.name }}!</p>
+    <button @click="signOut">Logout</button>
+  </div>
+  <div v-else>
+    <NuxtLink to="/auth/signin">Sign In</NuxtLink>
+  </div>
+</template>
+```
+
+#### 5. Navigation and UI Controls
+
+**Conditional Navigation Items:**
+```vue
+<!-- Show Teams link only to authenticated users -->
+<NuxtLink v-if="user" to="/team">Teams</NuxtLink>
+<span v-else class="text-gray-400 cursor-not-allowed">Teams</span>
+
+<!-- Show Admin link only to admin users -->
+<NuxtLink v-if="userIsAdmin" to="/admin">Admin</NuxtLink>
+```
+
+### Key Security Principles
+
+1. **Defense in Depth**: Protect both frontend (UX) and backend (security)
+2. **Server-Side Validation**: Always validate permissions on API endpoints
+3. **Session-Based Auth**: Use JWT tokens stored in session for auth state
+4. **Graceful Degradation**: Show appropriate UI states for unauthenticated users
+5. **Error Handling**: Provide clear error messages for unauthorized access
+
+### Common Auth Patterns Used
+
+- **Middleware Protection**: `middleware: 'auth'` for page-level protection
+- **Session Validation**: `getServerSession(event)` for API endpoint protection
+- **Conditional UI**: `v-if="user"` for authenticated-only features
+- **Admin Checks**: `user?.isAdmin === true` for admin-only features
+- **Redirect Logic**: `navigateUnauthenticatedTo` for custom sign-in redirects
