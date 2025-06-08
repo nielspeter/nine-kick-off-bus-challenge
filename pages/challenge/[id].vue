@@ -285,7 +285,7 @@ async function submitChallenge() {
   if (!finalAnswer.value.trim()) return
   
   try {
-    const response = await $fetch('/api/challenges/submit', {
+    await $fetch('/api/challenges/submit', {
       method: 'POST',
       body: {
         submissionId,

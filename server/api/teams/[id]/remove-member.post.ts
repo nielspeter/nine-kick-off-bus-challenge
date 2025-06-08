@@ -12,7 +12,7 @@ export default defineEventHandler(async (event) => {
     }
 
     const config = useRuntimeConfig()
-    const { Sequelize } = await import('sequelize')
+    const { Sequelize, QueryTypes } = await import('sequelize')
     const { initModels } = await import('~/server/models')
     
     const sequelize = new Sequelize(config.databaseUrl, { logging: false })
@@ -48,7 +48,7 @@ export default defineEventHandler(async (event) => {
     }
 
     // Check if user is a member of this team
-    const isMember = team.members?.some((member: any) => member.id === userToRemove.id)
+    const isMember = team.members?.some((member) => member.id === userToRemove.id)
     if (!isMember) {
       await sequelize.close()
       throw createError({
@@ -66,8 +66,11 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // Remove the user from the team
-    await team.removeMember(userToRemove)
+    // Remove the user from the team using raw SQL
+    await sequelize.query(
+      'DELETE FROM "TeamMembers" WHERE "TeamId" = ? AND "UserId" = ?',
+      { replacements: [teamId, userToRemove.id], type: QueryTypes.DELETE }
+    )
 
     // Get updated team data
     const updatedTeam = await Team.findByPk(teamId, {
@@ -92,16 +95,16 @@ export default defineEventHandler(async (event) => {
       message: 'Team member removed successfully',
       team: updatedTeam
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Remove team member error:', error)
     
-    if (error.statusCode) {
+    if (error && typeof error === 'object' && 'statusCode' in error) {
       throw error
     }
     
     throw createError({
       statusCode: 500,
-      statusMessage: error.message || 'Failed to remove team member'
+      statusMessage: error instanceof Error ? error.message : 'Failed to remove team member'
     })
   }
 })

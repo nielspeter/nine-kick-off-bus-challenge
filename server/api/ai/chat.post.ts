@@ -51,12 +51,15 @@ export default defineEventHandler(async (event) => {
 
     // Prepare AI request based on provider
     let aiResponse
-    const systemPrompt = `You are an AI assistant helping Team "${submission.team.name}" with the "${submission.task.title}" challenge in the "${submission.task.category}" category.
+    const team = (submission as any).team
+    const task = (submission as any).task
+    
+    const systemPrompt = `You are an AI assistant helping Team "${team.name}" with the "${task.title}" challenge in the "${task.category}" category.
 
-Challenge Description: ${submission.task.description}
+Challenge Description: ${task.description}
 
-Estimated Time: ${submission.task.estimatedTime} minutes
-Difficulty: ${submission.task.difficulty}/3
+Estimated Time: ${task.estimatedTime} minutes
+Difficulty: ${task.difficulty}/3
 
 You should:
 1. Help them brainstorm creative solutions
@@ -79,7 +82,7 @@ Remember: This is a creativity competition, so focus on innovative and unique ap
           model: 'gpt-4',
           messages: [
             { role: 'system', content: systemPrompt },
-            ...submission.chatHistory,
+            ...(submission.chatHistory as any[]),
             { role: 'user', content: message }
           ],
           max_tokens: 1000,
@@ -107,7 +110,7 @@ Remember: This is a creativity competition, so focus on innovative and unique ap
           max_tokens: 1000,
           system: systemPrompt,
           messages: [
-            ...submission.chatHistory,
+            ...(submission.chatHistory as any[]),
             { role: 'user', content: message }
           ]
         })
@@ -128,7 +131,7 @@ Remember: This is a creativity competition, so focus on innovative and unique ap
 
     // Update chat history
     const updatedChatHistory = [
-      ...submission.chatHistory,
+      ...(submission.chatHistory as any[]),
       { role: 'user', content: message, timestamp: new Date().toISOString() },
       { role: 'assistant', content: aiResponse, timestamp: new Date().toISOString(), provider }
     ]
@@ -145,12 +148,12 @@ Remember: This is a creativity competition, so focus on innovative and unique ap
       provider,
       chatHistory: updatedChatHistory
     }
-  } catch (error: any) {
-    if (error.statusCode) throw error
+  } catch (error: unknown) {
+    if (error && typeof error === 'object' && 'statusCode' in error) throw error
     
     throw createError({
       statusCode: 500,
-      statusMessage: error.message || 'Failed to process AI chat'
+      statusMessage: error instanceof Error ? error.message : 'Failed to process AI chat'
     })
   }
 })
