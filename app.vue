@@ -12,10 +12,8 @@ useHead({
   title: 'Nine KickOff Bus Challenge',
   meta: [
     { name: 'description', content: 'AI Creativity Competition Platform' },
-    { name: 'viewport', content: 'width=device-width, initial-scale=1' }
+    { name: 'viewport', content: 'width=device-width, initial-scale=1' },
   ],
-  link: [
-    { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' }
-  ]
+  link: [{ rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' }],
 })
 </script>

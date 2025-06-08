@@ -17,27 +17,27 @@ const competitionState: CompetitionState = {
   durationMinutes: 240, // Default 4 hours
   isPaused: false,
   pausedAt: null,
-  totalPausedTime: 0
+  totalPausedTime: 0,
 }
 
 export function getCompetitionState() {
   // Calculate end time if competition is started
   if (competitionState.isStarted && competitionState.startTime) {
     const endTime = new Date(
-      competitionState.startTime.getTime() + 
-      competitionState.durationMinutes * 60 * 1000 +
-      competitionState.totalPausedTime
+      competitionState.startTime.getTime() +
+        competitionState.durationMinutes * 60 * 1000 +
+        competitionState.totalPausedTime
     )
-    
+
     return {
       ...competitionState,
-      endTime
+      endTime,
     }
   }
-  
+
   return {
     ...competitionState,
-    endTime: null
+    endTime: null,
   }
 }
 

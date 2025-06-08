@@ -1,9 +1,9 @@
 import { getDatabase } from '~/server/utils/db'
 
-export default defineEventHandler(async (_event) => {
+export default defineEventHandler(async _event => {
   try {
     const sequelize = await getDatabase()
-    
+
     // Get all tasks using raw SQL
     const [results] = await sequelize.query(`
       SELECT 
@@ -20,13 +20,13 @@ export default defineEventHandler(async (_event) => {
 
     return {
       success: true,
-      data: results
+      data: results,
     }
   } catch (error) {
     console.error('Error fetching tasks:', error)
     throw createError({
       statusCode: 500,
-      statusMessage: 'Internal server error'
+      statusMessage: 'Internal server error',
     })
   }
 })

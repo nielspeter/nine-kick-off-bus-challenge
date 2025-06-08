@@ -32,7 +32,7 @@
     "dotenv": "^16.4.7",
     "eslint": "^9.28.0",
     "jsdom": "^25.0.1",
-    "next-auth": "^4.21.1",
+    "next-auth": "4.24.5",
     "nuxt": "^3.17.5",
     "pg": "^8.16.0",
     "pg-hstore": "^2.3.4",
@@ -43,6 +43,9 @@
   },
   "devDependencies": {
     "@iconify-json/heroicons": "^1.2.2",
+    "eslint-config-prettier": "^10.1.5",
+    "eslint-plugin-prettier": "^5.4.1",
+    "prettier": "^3.5.3",
     "typescript": "^5.8.3",
     "vue-tsc": "^2.2.10"
   }

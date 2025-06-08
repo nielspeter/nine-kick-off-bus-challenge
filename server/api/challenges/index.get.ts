@@ -3,7 +3,7 @@ import { getDatabase } from '~/server/utils/db'
 export default defineEventHandler(async () => {
   try {
     const sequelize = await getDatabase()
-    
+
     // Get all tasks
     const [results] = await sequelize.query(`
       SELECT 
@@ -19,7 +19,7 @@ export default defineEventHandler(async () => {
     `)
 
     const tasks = results as any[]
-    
+
     // Group tasks by category
     const groupedTasks: Record<string, any[]> = {}
     tasks.forEach(task => {
@@ -32,13 +32,13 @@ export default defineEventHandler(async () => {
     return {
       success: true,
       tasks,
-      groupedTasks
+      groupedTasks,
     }
   } catch (error: any) {
     console.error('Error fetching challenges:', error)
     throw createError({
       statusCode: 500,
-      statusMessage: error.message || 'Failed to fetch challenges'
+      statusMessage: error.message || 'Failed to fetch challenges',
     })
   }
 })

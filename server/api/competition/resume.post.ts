@@ -1,28 +1,28 @@
 import { resumeCompetition } from '~/server/utils/competitionState'
 import { getServerSession } from '#auth'
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   // Check if user is authenticated and is admin
   const session = await getServerSession(event)
-  
+
   if (!session?.user) {
     throw createError({
       statusCode: 401,
-      statusMessage: 'Authentication required'
+      statusMessage: 'Authentication required',
     })
   }
-  
+
   if (!(session.user as any).isAdmin) {
     throw createError({
       statusCode: 403,
-      statusMessage: 'Admin privileges required'
+      statusMessage: 'Admin privileges required',
     })
   }
-  
+
   const state = resumeCompetition()
-  
+
   return {
     success: true,
-    state
+    state,
   }
 })

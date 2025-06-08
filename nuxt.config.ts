@@ -11,30 +11,29 @@ export default defineNuxtConfig({
     '@nuxt/test-utils',
     '@nuxtjs/tailwindcss',
     '@pinia/nuxt',
-    '@sidebase/nuxt-auth'
+    '@sidebase/nuxt-auth',
   ],
 
   typescript: {
     strict: false,
-    typeCheck: false
+    typeCheck: false,
   },
-
 
   nitro: {
     experimental: {
-      websocket: true
+      websocket: true,
     },
-    plugins: ['~/server/plugins/database.ts']
+    plugins: ['~/server/plugins/database.ts'],
   },
 
   auth: {
     baseURL: process.env.AUTH_ORIGIN || 'http://localhost:3000/api/auth',
     provider: {
-      type: 'authjs'
+      type: 'authjs',
     },
     globalAppMiddleware: {
-      isEnabled: false
-    }
+      isEnabled: false,
+    },
   },
 
   runtimeConfig: {
@@ -48,7 +47,7 @@ export default defineNuxtConfig({
     public: {
       authUrl: process.env.AUTH_ORIGIN || 'http://localhost:3000',
       siteUrl: process.env.NUXT_PUBLIC_SITE_URL || 'http://localhost:3000',
-      authMode: process.env.AUTH_MODE || 'fake' // 'fake' or 'google'
-    }
-  }
+      authMode: process.env.AUTH_MODE || 'fake', // 'fake' or 'google'
+    },
+  },
 })

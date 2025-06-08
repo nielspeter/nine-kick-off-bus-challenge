@@ -1,4 +1,4 @@
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   try {
     const body = await readBody(event)
     const { name, captainEmail } = body
@@ -6,14 +6,14 @@ export default defineEventHandler(async (event) => {
     if (!name || !captainEmail) {
       throw createError({
         statusCode: 400,
-        statusMessage: 'Team name and captain email are required'
+        statusMessage: 'Team name and captain email are required',
       })
     }
 
     const config = useRuntimeConfig()
     const { Sequelize } = await import('sequelize')
     const { initModels } = await import('~/server/models')
-    
+
     const sequelize = new Sequelize(config.databaseUrl, { logging: false })
     const { User, Team } = initModels(sequelize)
 
@@ -23,7 +23,7 @@ export default defineEventHandler(async (event) => {
       await sequelize.close()
       throw createError({
         statusCode: 404,
-        statusMessage: 'Captain not found'
+        statusMessage: 'Captain not found',
       })
     }
 
@@ -37,14 +37,14 @@ export default defineEventHandler(async (event) => {
       await sequelize.close()
       throw createError({
         statusCode: 400,
-        statusMessage: 'User is already a member of a team'
+        statusMessage: 'User is already a member of a team',
       })
     }
 
     // Create team
     const team = await Team.create({
       name,
-      captainId: captain.id
+      captainId: captain.id,
     })
 
     // Add captain as first member
@@ -59,28 +59,28 @@ export default defineEventHandler(async (event) => {
         {
           model: User,
           as: 'members',
-          attributes: ['id', 'email', 'name', 'picture', 'role']
+          attributes: ['id', 'email', 'name', 'picture', 'role'],
         },
         {
           model: User,
           as: 'captain',
-          attributes: ['id', 'email', 'name', 'picture', 'role']
-        }
-      ]
+          attributes: ['id', 'email', 'name', 'picture', 'role'],
+        },
+      ],
     })
 
     await sequelize.close()
 
     return {
       success: true,
-      team: teamWithMembers
+      team: teamWithMembers,
     }
   } catch (error: any) {
     if (error.statusCode) throw error
-    
+
     throw createError({
       statusCode: 500,
-      statusMessage: error.message || 'Failed to create team'
+      statusMessage: error.message || 'Failed to create team',
     })
   }
 })

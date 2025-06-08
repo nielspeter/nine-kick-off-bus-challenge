@@ -9,15 +9,21 @@
         <div class="text-sm md:text-base text-gray-600">Total Teams</div>
       </div>
       <div class="bg-white rounded-lg shadow-md p-4 md:p-6 text-center">
-        <div class="text-2xl md:text-3xl font-bold text-green-600">{{ stats.totalSubmissions }}</div>
+        <div class="text-2xl md:text-3xl font-bold text-green-600">
+          {{ stats.totalSubmissions }}
+        </div>
         <div class="text-sm md:text-base text-gray-600">Total Submissions</div>
       </div>
       <div class="bg-white rounded-lg shadow-md p-4 md:p-6 text-center">
-        <div class="text-2xl md:text-3xl font-bold text-purple-600">{{ stats.completedSubmissions }}</div>
+        <div class="text-2xl md:text-3xl font-bold text-purple-600">
+          {{ stats.completedSubmissions }}
+        </div>
         <div class="text-sm md:text-base text-gray-600">Completed Challenges</div>
       </div>
       <div class="bg-white rounded-lg shadow-md p-4 md:p-6 text-center">
-        <div class="text-2xl md:text-3xl font-bold text-orange-600">{{ stats.activeSubmissions }}</div>
+        <div class="text-2xl md:text-3xl font-bold text-orange-600">
+          {{ stats.activeSubmissions }}
+        </div>
         <div class="text-sm md:text-base text-gray-600">Active Challenges</div>
       </div>
     </div>
@@ -30,9 +36,11 @@
             v-for="tab in tabs"
             :key="tab.id"
             class="px-6 py-3 text-sm font-medium border-b-2 transition-colors"
-            :class="activeTab === tab.id 
-              ? 'border-primary text-primary' 
-              : 'border-transparent text-gray-500 hover:text-gray-700'"
+            :class="
+              activeTab === tab.id
+                ? 'border-primary text-primary'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            "
             @click="activeTab = tab.id"
           >
             {{ tab.label }}
@@ -43,23 +51,30 @@
       <!-- Competition Settings Tab -->
       <div v-if="activeTab === 'settings'" class="p-4 md:p-6">
         <h2 class="text-xl font-semibold mb-4">Competition Control Center</h2>
-        
+
         <!-- Competition Status Card -->
         <div class="bg-white rounded-lg border p-6 mb-6">
           <div class="flex items-center justify-between mb-4">
             <h3 class="text-lg font-semibold">Competition Status</h3>
             <div class="flex items-center gap-2">
               <div
-:class="[
-                'w-3 h-3 rounded-full',
-                competitionState?.isStarted ? 'bg-green-500' : 'bg-gray-400'
-              ]"/>
+                :class="[
+                  'w-3 h-3 rounded-full',
+                  competitionState?.isStarted ? 'bg-green-500' : 'bg-gray-400',
+                ]"
+              />
               <span class="text-sm font-medium">
-                {{ competitionState?.isStarted ? (competitionState?.isPaused ? 'Paused' : 'Active') : 'Not Started' }}
+                {{
+                  competitionState?.isStarted
+                    ? competitionState?.isPaused
+                      ? 'Paused'
+                      : 'Active'
+                    : 'Not Started'
+                }}
               </span>
             </div>
           </div>
-          
+
           <div v-if="competitionState?.isStarted" class="space-y-2 text-sm text-gray-600 mb-4">
             <p>Started: {{ formatDateTime(competitionState.startTime) }}</p>
             <p>Ends: {{ formatDateTime(competitionState.endTime) }}</p>
@@ -67,7 +82,7 @@
               Competition is currently paused
             </p>
           </div>
-          
+
           <!-- Control Buttons -->
           <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
             <button
@@ -78,7 +93,7 @@
             >
               Start Competition
             </button>
-            
+
             <button
               v-if="competitionState?.isStarted && !competitionState?.isPaused"
               :disabled="controlLoading"
@@ -87,7 +102,7 @@
             >
               Pause
             </button>
-            
+
             <button
               v-if="competitionState?.isStarted && competitionState?.isPaused"
               :disabled="controlLoading"
@@ -96,7 +111,7 @@
             >
               Resume
             </button>
-            
+
             <button
               v-if="competitionState?.isStarted"
               :disabled="controlLoading"
@@ -107,7 +122,7 @@
             </button>
           </div>
         </div>
-        
+
         <!-- Duration Settings -->
         <div class="bg-white rounded-lg border p-6">
           <h3 class="text-lg font-semibold mb-4">Competition Duration</h3>
@@ -122,14 +137,16 @@
                   type="number"
                   min="1"
                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                >
+                />
                 <p class="mt-1 text-sm text-gray-500">
-                  {{ Math.floor(competitionDurationMinutes / 60) }} hours 
+                  {{ Math.floor(competitionDurationMinutes / 60) }} hours
                   {{ competitionDurationMinutes % 60 }} minutes
                 </p>
               </div>
               <button
-                :disabled="controlLoading || competitionState?.durationMinutes === competitionDurationMinutes"
+                :disabled="
+                  controlLoading || competitionState?.durationMinutes === competitionDurationMinutes
+                "
                 class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 disabled:opacity-50"
                 @click="updateDuration"
               >
@@ -144,12 +161,14 @@
             </p>
           </div>
         </div>
-        
+
         <div v-if="settingsMessage" class="mt-4">
-          <div 
+          <div
             :class="[
               'p-3 rounded-md',
-              settingsMessageType === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+              settingsMessageType === 'success'
+                ? 'bg-green-100 text-green-800'
+                : 'bg-red-100 text-red-800',
             ]"
           >
             {{ settingsMessage }}
@@ -188,7 +207,7 @@
                   </span>
                 </td>
                 <td class="py-3">
-                  <button 
+                  <button
                     class="text-primary hover:text-primary/80 text-sm"
                     @click="viewTeamDetails(team)"
                   >
@@ -205,8 +224,8 @@
       <div v-if="activeTab === 'submissions'" class="p-4 md:p-6">
         <h2 class="text-xl font-semibold mb-4">Submissions & Judging</h2>
         <div class="space-y-4">
-          <div 
-            v-for="submission in completedSubmissions" 
+          <div
+            v-for="submission in completedSubmissions"
             :key="submission.id"
             class="border rounded-lg p-4 hover:shadow-md transition-shadow"
           >
@@ -222,7 +241,7 @@
                 <span class="bg-gray-100 text-gray-800 px-2 py-1 rounded text-sm">
                   {{ submission.task?.category }}
                 </span>
-                <button 
+                <button
                   class="bg-primary text-white px-3 py-1 rounded text-sm hover:bg-primary/90"
                   @click="reviewSubmission(submission)"
                 >
@@ -230,7 +249,7 @@
                 </button>
               </div>
             </div>
-            
+
             <div class="bg-gray-50 rounded p-3">
               <h4 class="font-medium text-sm mb-2">Final Answer:</h4>
               <p class="text-sm">
@@ -245,20 +264,16 @@
       <div v-if="activeTab === 'leaderboard'" class="p-4 md:p-6">
         <h2 class="text-xl font-semibold mb-4">Competition Leaderboard</h2>
         <div class="space-y-3">
-          <div 
-            v-for="(team, index) in leaderboard" 
+          <div
+            v-for="(team, index) in leaderboard"
             :key="team.id"
             class="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
           >
             <div class="flex items-center gap-4">
-              <div class="text-2xl font-bold text-gray-400">
-                #{{ index + 1 }}
-              </div>
+              <div class="text-2xl font-bold text-gray-400">#{{ index + 1 }}</div>
               <div>
                 <div class="font-semibold">{{ team.name }}</div>
-                <div class="text-sm text-gray-600">
-                  {{ team.members?.length || 0 }} members
-                </div>
+                <div class="text-sm text-gray-600">{{ team.members?.length || 0 }} members</div>
               </div>
             </div>
             <div class="text-right">
@@ -274,7 +289,7 @@
 
     <!-- Loading State -->
     <div v-if="loading" class="text-center py-12">
-      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"/>
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" />
       <p v-if="loadingAuth" class="mt-4 text-gray-600">Checking authentication...</p>
       <p v-else class="mt-4 text-gray-600">Loading admin data...</p>
     </div>
@@ -285,8 +300,8 @@
 // Protect page - redirect unauthenticated users to signin
 definePageMeta({
   auth: {
-    navigateUnauthenticatedTo: '/auth/signin'
-  }
+    navigateUnauthenticatedTo: '/auth/signin',
+  },
 })
 
 // Check admin access on component mount
@@ -321,28 +336,32 @@ function checkAdminAccess() {
   if (status.value === 'loading') {
     return
   }
-  
+
   if (status.value === 'unauthenticated') {
     throw createError({
       statusCode: 401,
-      statusMessage: 'Authentication required'
+      statusMessage: 'Authentication required',
     })
   }
 
   if (!isAdmin.value) {
     throw createError({
       statusCode: 403,
-      statusMessage: 'Access denied. Admin privileges required.'
+      statusMessage: 'Access denied. Admin privileges required.',
     })
   }
 }
 
 // Watch for auth status changes
-watch([status, isAdmin], () => {
-  if (status.value !== 'loading') {
-    checkAdminAccess()
-  }
-}, { immediate: true })
+watch(
+  [status, isAdmin],
+  () => {
+    if (status.value !== 'loading') {
+      checkAdminAccess()
+    }
+  },
+  { immediate: true }
+)
 
 const teams = ref([])
 const submissions = ref([])
@@ -350,17 +369,17 @@ const stats = ref({
   totalTeams: 0,
   totalSubmissions: 0,
   completedSubmissions: 0,
-  activeSubmissions: 0
+  activeSubmissions: 0,
 })
 
 const tabs = [
   { id: 'settings', label: 'Competition Settings' },
   { id: 'teams', label: 'Teams' },
   { id: 'submissions', label: 'Submissions' },
-  { id: 'leaderboard', label: 'Leaderboard' }
+  { id: 'leaderboard', label: 'Leaderboard' },
 ]
 
-const completedSubmissions = computed(() => 
+const completedSubmissions = computed(() =>
   submissions.value.filter(sub => sub.status === 'completed')
 )
 
@@ -368,21 +387,18 @@ const leaderboard = computed(() => {
   return teams.value
     .map(team => ({
       ...team,
-      completedCount: getTeamCompletedCount(team.id)
+      completedCount: getTeamCompletedCount(team.id),
     }))
     .sort((a, b) => b.completedCount - a.completedCount)
 })
 
 function getTeamCompletedCount(teamId: string) {
-  return submissions.value.filter(sub => 
-    sub.teamId === teamId && sub.status === 'completed'
-  ).length
+  return submissions.value.filter(sub => sub.teamId === teamId && sub.status === 'completed').length
 }
 
 function getTeamActiveCount(teamId: string) {
-  return submissions.value.filter(sub => 
-    sub.teamId === teamId && sub.status === 'in_progress'
-  ).length
+  return submissions.value.filter(sub => sub.teamId === teamId && sub.status === 'in_progress')
+    .length
 }
 
 function formatDate(dateString: string) {
@@ -414,7 +430,7 @@ async function loadCompetitionState() {
 async function startCompetition() {
   controlLoading.value = true
   settingsMessage.value = ''
-  
+
   try {
     const response = await $fetch('/api/competition/start', { method: 'POST' })
     competitionState.value = response.state
@@ -433,10 +449,10 @@ async function stopCompetition() {
   if (!confirm('Are you sure you want to stop and reset the competition?')) {
     return
   }
-  
+
   controlLoading.value = true
   settingsMessage.value = ''
-  
+
   try {
     const response = await $fetch('/api/competition/stop', { method: 'POST' })
     competitionState.value = response.state
@@ -454,7 +470,7 @@ async function stopCompetition() {
 async function pauseCompetition() {
   controlLoading.value = true
   settingsMessage.value = ''
-  
+
   try {
     const response = await $fetch('/api/competition/pause', { method: 'POST' })
     competitionState.value = response.state
@@ -472,7 +488,7 @@ async function pauseCompetition() {
 async function resumeCompetition() {
   controlLoading.value = true
   settingsMessage.value = ''
-  
+
   try {
     const response = await $fetch('/api/competition/resume', { method: 'POST' })
     competitionState.value = response.state
@@ -490,11 +506,11 @@ async function resumeCompetition() {
 async function updateDuration() {
   controlLoading.value = true
   settingsMessage.value = ''
-  
+
   try {
     const response = await $fetch('/api/competition/update-duration', {
       method: 'POST',
-      body: { durationMinutes: competitionDurationMinutes.value }
+      body: { durationMinutes: competitionDurationMinutes.value },
     })
     competitionState.value = response.state
     settingsMessage.value = 'Duration updated successfully'
@@ -518,7 +534,7 @@ async function fetchAdminData() {
     console.log('🚫 Not fetching admin data - user is not admin')
     return
   }
-  
+
   console.log('🔄 Fetching admin data...')
   loadingAdminData.value = true
   try {
@@ -539,9 +555,9 @@ async function fetchAdminData() {
       totalTeams: teams.value.length,
       totalSubmissions: submissions.value.length,
       completedSubmissions: submissions.value.filter(sub => sub.status === 'completed').length,
-      activeSubmissions: submissions.value.filter(sub => sub.status === 'in_progress').length
+      activeSubmissions: submissions.value.filter(sub => sub.status === 'in_progress').length,
     }
-    
+
     console.log('📈 Calculated stats:', stats.value)
   } catch (error) {
     console.error('❌ Failed to fetch admin data:', error)
@@ -551,17 +567,21 @@ async function fetchAdminData() {
 }
 
 // Watch for admin status change to fetch data
-watch(isAdmin, async (newIsAdmin) => {
-  if (newIsAdmin) {
-    await fetchAdminData()
-    await loadCompetitionState()
-  }
-}, { immediate: true })
+watch(
+  isAdmin,
+  async newIsAdmin => {
+    if (newIsAdmin) {
+      await fetchAdminData()
+      await loadCompetitionState()
+    }
+  },
+  { immediate: true }
+)
 
 // Refresh competition state periodically when on settings tab
 const refreshInterval = ref<NodeJS.Timeout | null>(null)
 
-watch(activeTab, (newTab) => {
+watch(activeTab, newTab => {
   if (newTab === 'settings') {
     // Load immediately
     loadCompetitionState()

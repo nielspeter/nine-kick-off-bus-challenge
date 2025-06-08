@@ -1,18 +1,18 @@
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   try {
     const teamId = getRouterParam(event, 'teamId')
-    
+
     if (!teamId) {
       throw createError({
         statusCode: 400,
-        statusMessage: 'Team ID is required'
+        statusMessage: 'Team ID is required',
       })
     }
 
     const config = useRuntimeConfig()
     const { Sequelize } = await import('sequelize')
     const { initModels } = await import('~/server/models')
-    
+
     const sequelize = new Sequelize(config.databaseUrl, { logging: false })
     const { Submission, Task, Team } = initModels(sequelize)
 
@@ -22,7 +22,7 @@ export default defineEventHandler(async (event) => {
       await sequelize.close()
       throw createError({
         statusCode: 404,
-        statusMessage: 'Team not found'
+        statusMessage: 'Team not found',
       })
     }
 
@@ -33,24 +33,24 @@ export default defineEventHandler(async (event) => {
         {
           model: Task,
           as: 'task',
-          attributes: ['id', 'title', 'category', 'description', 'estimatedTime', 'difficulty']
-        }
+          attributes: ['id', 'title', 'category', 'description', 'estimatedTime', 'difficulty'],
+        },
       ],
-      order: [['createdAt', 'DESC']]
+      order: [['createdAt', 'DESC']],
     })
 
     await sequelize.close()
 
     return {
       success: true,
-      submissions
+      submissions,
     }
   } catch (error: any) {
     if (error.statusCode) throw error
-    
+
     throw createError({
       statusCode: 500,
-      statusMessage: error.message || 'Failed to fetch team submissions'
+      statusMessage: error.message || 'Failed to fetch team submissions',
     })
   }
 })

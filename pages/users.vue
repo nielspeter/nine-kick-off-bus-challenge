@@ -3,7 +3,7 @@
     <div class="flex items-center justify-between mb-6">
       <h1 class="text-3xl font-bold">All Users</h1>
       <div class="flex items-center gap-2">
-        <div 
+        <div
           class="w-3 h-3 rounded-full"
           :class="loading ? 'bg-yellow-500 animate-pulse' : 'bg-green-500'"
         />
@@ -42,7 +42,7 @@
             type="text"
             placeholder="Search users by name or email..."
             class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-600"
-          >
+          />
         </div>
         <div class="flex gap-2">
           <select
@@ -77,11 +77,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr
-              v-for="user in filteredUsers"
-              :key="user.id"
-              class="border-t hover:bg-gray-50"
-            >
+            <tr v-for="user in filteredUsers" :key="user.id" class="border-t hover:bg-gray-50">
               <td class="p-4">
                 <div class="flex items-center gap-3">
                   <img
@@ -89,8 +85,11 @@
                     :src="user.picture"
                     :alt="user.name"
                     class="w-8 h-8 rounded-full"
+                  />
+                  <div
+                    v-else
+                    class="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center text-gray-600 text-sm font-medium"
                   >
-                  <div v-else class="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center text-gray-600 text-sm font-medium">
                     {{ user.name?.charAt(0) || '?' }}
                   </div>
                   <div>
@@ -132,12 +131,12 @@
           </tbody>
         </table>
       </div>
-      
+
       <div v-if="loading" class="text-center py-8">
         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto" />
         <p class="mt-2 text-gray-600">Loading users...</p>
       </div>
-      
+
       <div v-else-if="filteredUsers.length === 0" class="text-center py-8 text-gray-600">
         {{ searchQuery ? 'No users found matching your search.' : 'No users found.' }}
       </div>
@@ -172,9 +171,8 @@ const filteredUsers = computed(() => {
   // Apply search filter
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase()
-    filtered = filtered.filter(user =>
-      user.name.toLowerCase().includes(query) ||
-      user.email.toLowerCase().includes(query)
+    filtered = filtered.filter(
+      user => user.name.toLowerCase().includes(query) || user.email.toLowerCase().includes(query)
     )
   }
 
@@ -214,10 +212,10 @@ async function fetchUsers() {
     console.log('API response:', response)
     console.log('Response data:', response.data)
     console.log('Response success:', response.success)
-    
+
     users.value = response.data || []
     console.log('Users loaded:', users.value.length)
-    
+
     if (users.value.length === 0) {
       console.error('No users returned from API')
       if (!response.success) {

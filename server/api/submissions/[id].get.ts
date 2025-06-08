@@ -1,20 +1,21 @@
 import { getDatabase } from '~/server/utils/db'
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   try {
     const submissionId = getRouterParam(event, 'id')
-    
+
     if (!submissionId) {
       throw createError({
         statusCode: 400,
-        statusMessage: 'Submission ID is required'
+        statusMessage: 'Submission ID is required',
       })
     }
 
     const sequelize = await getDatabase()
 
     // Fetch submission with related data using raw SQL
-    const [results] = await sequelize.query(`
+    const [results] = await sequelize.query(
+      `
       SELECT 
         s.*,
         t.id as task_id,
@@ -29,19 +30,21 @@ export default defineEventHandler(async (event) => {
       JOIN "Tasks" t ON s."taskId" = t.id
       JOIN "Teams" team ON s."teamId" = team.id
       WHERE s.id = :submissionId
-    `, {
-      replacements: { submissionId }
-    })
+    `,
+      {
+        replacements: { submissionId },
+      }
+    )
 
     if (!results || (results as any[]).length === 0) {
       throw createError({
         statusCode: 404,
-        statusMessage: 'Submission not found'
+        statusMessage: 'Submission not found',
       })
     }
 
     const result = (results as any[])[0]
-    
+
     // Format the response to match the expected structure
     const submission = {
       id: result.id,
@@ -59,24 +62,24 @@ export default defineEventHandler(async (event) => {
         category: result.task_category,
         description: result.task_description,
         estimatedTime: result.task_estimated_time,
-        difficulty: result.task_difficulty
+        difficulty: result.task_difficulty,
       },
       team: {
         id: result.team_id,
-        name: result.team_name
-      }
+        name: result.team_name,
+      },
     }
 
     return {
       success: true,
-      submission
+      submission,
     }
   } catch (error: any) {
     if (error.statusCode) throw error
-    
+
     throw createError({
       statusCode: 500,
-      statusMessage: error.message || 'Failed to fetch submission'
+      statusMessage: error.message || 'Failed to fetch submission',
     })
   }
 })

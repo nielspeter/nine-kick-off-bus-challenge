@@ -1,7 +1,7 @@
 <template>
   <div class="max-w-4xl mx-auto p-4 md:p-6">
     <div v-if="loading" class="text-center py-12">
-      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"/>
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" />
       <p class="mt-4 text-gray-600">Loading challenge...</p>
     </div>
 
@@ -12,7 +12,7 @@
           <div>
             <h1 class="text-2xl font-bold mb-2">{{ submission.task.title }}</h1>
             <p class="text-gray-600 mb-4">{{ submission.task.description }}</p>
-            
+
             <div class="flex flex-wrap items-center gap-3 md:gap-6 text-sm text-gray-500">
               <div class="flex items-center gap-1">
                 <Icon name="heroicons:clock" class="w-4 h-4" />
@@ -28,11 +28,11 @@
               </div>
             </div>
           </div>
-          
+
           <div class="text-right">
             <div class="text-sm text-gray-500">Team</div>
             <div class="font-medium">{{ submission.team.name }}</div>
-            <div 
+            <div
               class="inline-block px-3 py-1 rounded-full text-sm font-medium mt-2"
               :class="getStatusClass(submission.status)"
             >
@@ -69,28 +69,31 @@
         <!-- Chat Messages -->
         <div ref="chatContainer" class="h-96 overflow-y-auto p-4 space-y-4">
           <div v-if="chatHistory.length === 0" class="text-center text-gray-500 py-8">
-            <Icon name="heroicons:chat-bubble-left-right" class="w-12 h-12 mx-auto mb-2 text-gray-400" />
+            <Icon
+              name="heroicons:chat-bubble-left-right"
+              class="w-12 h-12 mx-auto mb-2 text-gray-400"
+            />
             <p>Start a conversation with AI to brainstorm solutions!</p>
           </div>
-          
-          <div 
-            v-for="(message, index) in chatHistory" 
+
+          <div
+            v-for="(message, index) in chatHistory"
             :key="index"
             class="flex gap-3"
             :class="message.role === 'user' ? 'justify-end' : 'justify-start'"
           >
-            <div 
+            <div
               v-if="message.role === 'assistant'"
               class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0"
             >
               🤖
             </div>
-            
-            <div 
+
+            <div
               class="max-w-3xl px-4 py-2 rounded-lg"
-              :class="message.role === 'user' 
-                ? 'bg-primary text-white' 
-                : 'bg-gray-100 text-gray-900'"
+              :class="
+                message.role === 'user' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-900'
+              "
             >
               <div class="whitespace-pre-wrap">{{ message.content }}</div>
               <div class="text-xs opacity-70 mt-1">
@@ -98,24 +101,32 @@
                 <span v-if="message.provider" class="ml-2">({{ message.provider }})</span>
               </div>
             </div>
-            
-            <div 
+
+            <div
               v-if="message.role === 'user'"
               class="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0 text-white"
             >
               👤
             </div>
           </div>
-          
+
           <div v-if="isTyping" class="flex gap-3 justify-start">
-            <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+            <div
+              class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0"
+            >
               🤖
             </div>
             <div class="bg-gray-100 px-4 py-2 rounded-lg">
               <div class="flex space-x-1">
-                <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce"/>
-                <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.1s"/>
-                <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.2s"/>
+                <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
+                <div
+                  class="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                  style="animation-delay: 0.1s"
+                />
+                <div
+                  class="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                  style="animation-delay: 0.2s"
+                />
               </div>
             </div>
           </div>
@@ -128,8 +139,8 @@
             <p>Chat is disabled for completed challenges</p>
           </div>
           <form v-else class="flex flex-col sm:flex-row gap-2" @submit.prevent="sendMessage">
-            <select 
-              v-model="selectedProvider" 
+            <select
+              v-model="selectedProvider"
               class="border rounded-lg px-3 py-2 bg-white"
               :disabled="isTyping"
             >
@@ -142,7 +153,7 @@
               placeholder="Ask AI for help with this challenge..."
               class="flex-1 border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary min-w-0"
               :disabled="isTyping"
-            >
+            />
             <button
               type="submit"
               :disabled="!newMessage.trim() || isTyping"
@@ -163,17 +174,18 @@
           class="w-full h-32 border rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-primary resize-none"
           :disabled="submission.status === 'completed'"
         />
-        
-        <div v-if="submission.status === 'completed'" class="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+
+        <div
+          v-if="submission.status === 'completed'"
+          class="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg"
+        >
           <div class="flex items-center gap-2 text-green-800">
             <Icon name="heroicons:check-circle" class="w-5 h-5" />
             <span class="font-medium">Challenge Completed!</span>
           </div>
-          <p class="text-green-700 mt-1">
-            Submitted on {{ formatTime(submission.submittedAt) }}
-          </p>
+          <p class="text-green-700 mt-1">Submitted on {{ formatTime(submission.submittedAt) }}</p>
         </div>
-        
+
         <div v-else class="mt-4 flex justify-end">
           <button
             :disabled="!finalAnswer.trim()"
@@ -187,20 +199,23 @@
     </div>
 
     <!-- Submit Confirmation Modal -->
-    <div v-if="showSubmitModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div
+      v-if="showSubmitModal"
+      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+    >
       <div class="bg-white rounded-lg p-6 w-full max-w-md">
         <h3 class="text-xl font-semibold mb-4">Submit Challenge</h3>
         <p class="text-gray-600 mb-6">
           Are you sure you want to submit your final answer? This action cannot be undone.
         </p>
         <div class="flex justify-end gap-2">
-          <button 
+          <button
             class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
             @click="showSubmitModal = false"
           >
             Cancel
           </button>
-          <button 
+          <button
             class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
             @click="submitChallenge"
           >
@@ -215,10 +230,7 @@
       <Icon name="heroicons:exclamation-triangle" class="w-12 h-12 text-red-500 mx-auto mb-4" />
       <h3 class="text-lg font-medium text-gray-900 mb-2">Challenge Not Found</h3>
       <p class="text-gray-500 mb-4">{{ error }}</p>
-      <NuxtLink 
-        to="/tasks" 
-        class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90"
-      >
+      <NuxtLink to="/tasks" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90">
         Back to Challenges
       </NuxtLink>
     </div>
@@ -256,7 +268,7 @@ function formatTime(timestamp: string) {
 
 async function sendMessage() {
   if (!newMessage.value.trim() || isTyping.value) return
-  
+
   const message = newMessage.value.trim()
   newMessage.value = ''
   isTyping.value = true
@@ -267,8 +279,8 @@ async function sendMessage() {
       body: {
         submissionId,
         message,
-        provider: selectedProvider.value
-      }
+        provider: selectedProvider.value,
+      },
     })
 
     chatHistory.value = response.chatHistory
@@ -283,19 +295,19 @@ async function sendMessage() {
 
 async function submitChallenge() {
   if (!finalAnswer.value.trim()) return
-  
+
   try {
     await $fetch('/api/challenges/submit', {
       method: 'POST',
       body: {
         submissionId,
-        finalAnswers: [finalAnswer.value]
-      }
+        finalAnswers: [finalAnswer.value],
+      },
     })
-    
+
     showSubmitModal.value = false
     await fetchSubmission() // Refresh data
-    
+
     // Success notification
     alert('Challenge submitted successfully!')
   } catch (error) {
@@ -306,15 +318,16 @@ async function submitChallenge() {
 
 async function forfeitChallenge() {
   if (!submission.value) return
-  
-  const confirmMessage = 'Are you sure you want to forfeit this challenge? This will allow you to start a new challenge, but your progress will be lost.'
+
+  const confirmMessage =
+    'Are you sure you want to forfeit this challenge? This will allow you to start a new challenge, but your progress will be lost.'
   if (!confirm(confirmMessage)) return
-  
+
   try {
     await $fetch(`/api/submissions/${submission.value.id}/forfeit`, {
-      method: 'POST'
+      method: 'POST',
     })
-    
+
     // Success notification and redirect
     alert('Challenge forfeited successfully! You can now start a new challenge.')
     await navigateTo('/tasks')
@@ -335,12 +348,12 @@ function scrollToBottom() {
 async function fetchSubmission() {
   loading.value = true
   error.value = ''
-  
+
   try {
     const response = await $fetch(`/api/submissions/${submissionId}`)
     submission.value = response.submission
     chatHistory.value = response.submission.chatHistory || []
-    
+
     // Set final answer if exists
     if (response.submission.finalAnswers && response.submission.finalAnswers.length > 0) {
       finalAnswer.value = response.submission.finalAnswers[0]
@@ -357,7 +370,11 @@ onMounted(() => {
 })
 
 // Auto-scroll when new messages arrive
-watch(chatHistory, () => {
-  scrollToBottom()
-}, { deep: true })
+watch(
+  chatHistory,
+  () => {
+    scrollToBottom()
+  },
+  { deep: true }
+)
 </script>

@@ -1,11 +1,11 @@
 import { getDatabase } from '~/server/utils/db'
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   const checks = {
     app: true,
     database: false,
     redis: false,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   }
 
   try {
@@ -18,7 +18,10 @@ export default defineEventHandler(async (event) => {
       checks.database = true
     }
   } catch (error) {
-    console.error('Database health check failed:', error instanceof Error ? error.message : String(error))
+    console.error(
+      'Database health check failed:',
+      error instanceof Error ? error.message : String(error)
+    )
   }
 
   try {
@@ -30,18 +33,21 @@ export default defineEventHandler(async (event) => {
       checks.redis = true
     }
   } catch (error) {
-    console.error('Redis health check failed:', error instanceof Error ? error.message : String(error))
+    console.error(
+      'Redis health check failed:',
+      error instanceof Error ? error.message : String(error)
+    )
   }
 
   // For now, don't fail health check on database issues to avoid container restart loops
   const healthy = checks.app
-  
+
   setResponseStatus(event, healthy ? 200 : 503)
-  
+
   return {
     status: healthy ? 'healthy' : 'unhealthy',
     checks,
     environment: process.env.NODE_ENV || 'development',
-    version: '1.0.0'
+    version: '1.0.0',
   }
 })

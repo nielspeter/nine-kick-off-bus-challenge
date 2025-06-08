@@ -1,9 +1,9 @@
 import { getDatabase } from '~/server/utils/db'
 
-export default defineEventHandler(async (_event) => {
+export default defineEventHandler(async _event => {
   try {
     const sequelize = await getDatabase()
-    
+
     // Use raw query with singleton connection
     const [results] = await sequelize.query(`
       SELECT 
@@ -19,14 +19,14 @@ export default defineEventHandler(async (_event) => {
 
     return {
       success: true,
-      data: results
+      data: results,
     }
   } catch (error) {
     console.error('Database error in available users:', error)
     return {
       success: false,
       data: [],
-      error: String(error)
+      error: String(error),
     }
   }
 })

@@ -8,12 +8,12 @@ export default NuxtAuthHandler({
       name: 'Fake Auth',
       type: 'credentials',
       credentials: {
-        userId: { label: 'User ID', type: 'text' }
+        userId: { label: 'User ID', type: 'text' },
       },
       async authorize(credentials) {
         console.log('🔍 Fake auth authorize called with:', credentials)
         const config = useRuntimeConfig()
-        
+
         // Only allow fake auth when AUTH_MODE=fake
         if (config.public.authMode !== 'fake') {
           console.log('❌ Fake auth disabled, AUTH_MODE:', config.public.authMode)
@@ -28,7 +28,7 @@ export default NuxtAuthHandler({
         try {
           const { Sequelize } = await import('sequelize')
           const { initModels } = await import('~/server/models')
-          
+
           const sequelize = new Sequelize(config.databaseUrl, { logging: false })
           const { User } = initModels(sequelize)
 
@@ -52,8 +52,8 @@ export default NuxtAuthHandler({
           console.error('❌ Fake auth error:', error)
           return null
         }
-      }
-    }
+      },
+    },
   ],
   callbacks: {
     async jwt({ token, user }) {
@@ -68,13 +68,13 @@ export default NuxtAuthHandler({
     },
     async session({ session, token }) {
       if (token && session.user) {
-        (session.user as any).id = token.id as string
+        ;(session.user as any).id = token.id as string
         session.user.email = token.email as string
         session.user.name = token.name as string
         session.user.image = token.image as string
         ;(session.user as any).isAdmin = token.isAdmin as boolean
       }
       return session
-    }
-  }
+    },
+  },
 })

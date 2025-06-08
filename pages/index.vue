@@ -26,9 +26,7 @@
         <div v-else-if="competitionStatus === 'active'">
           Competition is live! Form your team and start solving challenges.
         </div>
-        <div v-else>
-          Thank you for participating! Results will be announced soon.
-        </div>
+        <div v-else>Thank you for participating! Results will be announced soon.</div>
       </div>
     </div>
 
@@ -39,15 +37,13 @@
         <span class="text-blue-600">Bus Challenge</span>
       </h1>
       <p class="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-        An AI creativity competition where teams compete by using AI to solve challenges
-        across different professional domains during the bus trip.
+        An AI creativity competition where teams compete by using AI to solve challenges across
+        different professional domains during the bus trip.
       </p>
 
       <!-- Quick Actions -->
       <div class="space-y-4">
-        <h2 class="text-2xl font-semibold text-gray-800 mb-4">
-          Ready to compete?
-        </h2>
+        <h2 class="text-2xl font-semibold text-gray-800 mb-4">Ready to compete?</h2>
         <div class="flex flex-col sm:flex-row gap-4 justify-center">
           <NuxtLink
             to="/team"
@@ -76,9 +72,7 @@
       <div class="bg-white p-6 rounded-lg shadow-sm border">
         <Icon name="heroicons:users" class="w-12 h-12 text-blue-600 mx-auto mb-4" />
         <h3 class="text-xl font-semibold mb-2">Team Formation</h3>
-        <p class="text-gray-600">
-          Self-organize into teams of 2-4 people and compete together
-        </p>
+        <p class="text-gray-600">Self-organize into teams of 2-4 people and compete together</p>
       </div>
 
       <div class="bg-white p-6 rounded-lg shadow-sm border">
@@ -92,9 +86,7 @@
       <div class="bg-white p-6 rounded-lg shadow-sm border">
         <Icon name="heroicons:trophy" class="w-12 h-12 text-blue-600 mx-auto mb-4" />
         <h3 class="text-xl font-semibold mb-2">Competition</h3>
-        <p class="text-gray-600">
-          Compete for creativity, innovation, and best use of AI
-        </p>
+        <p class="text-gray-600">Compete for creativity, innovation, and best use of AI</p>
       </div>
     </div>
 
@@ -102,7 +94,11 @@
     <div class="py-12">
       <h2 class="text-3xl font-bold text-gray-900 mb-8">Challenge Categories</h2>
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div v-for="category in categories" :key="category.name" class="bg-white p-4 rounded-lg border text-center">
+        <div
+          v-for="category in categories"
+          :key="category.name"
+          class="bg-white p-4 rounded-lg border text-center"
+        >
           <div class="text-2xl mb-2">{{ category.icon }}</div>
           <h4 class="font-semibold text-sm">{{ category.name }}</h4>
         </div>
@@ -113,16 +109,10 @@
 
 <script setup lang="ts">
 // Competition timer
-import {useCompetitionTimer} from "~/composables/useCompetitionTimer";
+import { useCompetitionTimer } from '~/composables/useCompetitionTimer'
 
-const {
-  timeLeft,
-  competitionStatus,
-  progress,
-  startTimer,
-  getStatusMessage,
-  getStatusColor
-} = useCompetitionTimer()
+const { timeLeft, competitionStatus, progress, startTimer, getStatusMessage, getStatusColor } =
+  useCompetitionTimer()
 
 const categories = [
   { name: 'Test', icon: '🧪' },
@@ -132,7 +122,7 @@ const categories = [
   { name: 'Sales', icon: '💼' },
   { name: 'Business Analysis', icon: '📊' },
   { name: 'BUL/Sales', icon: '🤝' },
-  { name: 'Communication', icon: '📢' }
+  { name: 'Communication', icon: '📢' },
 ]
 
 // Start the competition timer when component mounts

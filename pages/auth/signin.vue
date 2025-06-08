@@ -8,18 +8,16 @@
         <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
           Nine KickOff Bus Challenge
         </h2>
-        <p class="mt-2 text-center text-sm text-gray-600">
-          Sign in with your Nine email account
-        </p>
+        <p class="mt-2 text-center text-sm text-gray-600">Sign in with your Nine email account</p>
       </div>
-      
+
       <!-- Fake Auth Mode -->
       <div v-if="config.public.authMode === 'fake'" class="mt-8 space-y-6">
         <div class="space-y-4">
           <label for="user-select" class="block text-sm font-medium text-gray-700">
             Select User (Development Mode)
           </label>
-          <select 
+          <select
             id="user-select"
             v-model="selectedUserId"
             class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -54,7 +52,7 @@
           <Icon name="logos:google-icon" class="w-5 h-5 mr-2" />
           {{ loading ? 'Signing in...' : 'Sign in with Google' }}
         </button>
-        
+
         <div class="text-center">
           <p class="text-xs text-gray-500">
             Only Nine employees (@nine.dk) can access this platform
@@ -109,24 +107,24 @@ async function signInWithFakeUser() {
     console.error('No user selected')
     return
   }
-  
+
   console.log('🔍 signInWithFakeUser called with selectedUserId:', selectedUserId.value)
-  
+
   loading.value = true
   try {
     // Use @sidebase/nuxt-auth's signIn method instead of direct fetch
     const { signIn } = useAuth()
-    
+
     console.log('🚀 Calling signIn with fake-auth provider and userId:', selectedUserId.value)
-    
+
     const result = await signIn('fake-auth', {
       userId: selectedUserId.value,
       callbackUrl: '/',
-      redirect: false
+      redirect: false,
     })
-    
+
     console.log('✅ signIn result:', result)
-    
+
     if (result && 'error' in result && result.error) {
       console.error('❌ Sign in failed:', result.error)
       alert('Failed to sign in: ' + result.error)

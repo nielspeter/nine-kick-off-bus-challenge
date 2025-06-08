@@ -65,8 +65,11 @@
             :src="member.picture"
             :alt="member.name"
             class="w-10 h-10 rounded-full"
+          />
+          <div
+            v-else
+            class="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center text-gray-600 font-medium"
           >
-          <div v-else class="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center text-gray-600 font-medium">
             {{ member.name?.charAt(0) || '?' }}
           </div>
           <div class="flex-1">
@@ -199,7 +202,10 @@
     </div>
 
     <!-- Create Team Modal -->
-    <div v-if="showCreateModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div
+      v-if="showCreateModal"
+      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+    >
       <div class="bg-white rounded-lg p-6 w-full max-w-md">
         <h3 class="text-xl font-semibold mb-4">Create New Team</h3>
         <form @submit.prevent="createTeam">
@@ -212,7 +218,7 @@
               required
               class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="Enter team name"
-            >
+            />
           </div>
           <div class="flex justify-end gap-2">
             <button
@@ -235,7 +241,10 @@
     </div>
 
     <!-- Join Team Modal -->
-    <div v-if="showJoinModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div
+      v-if="showJoinModal"
+      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+    >
       <div class="bg-white rounded-lg p-6 w-full max-w-md">
         <h3 class="text-xl font-semibold mb-4">Join Team</h3>
         <div class="mb-4">
@@ -264,12 +273,17 @@
     </div>
 
     <!-- Invite Member Modal -->
-    <div v-if="showInviteModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div
+      v-if="showInviteModal"
+      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+    >
       <div class="bg-white rounded-lg p-6 w-full max-w-md">
         <h3 class="text-xl font-semibold mb-4">Invite Team Member</h3>
         <form @submit.prevent="inviteMember">
           <div class="mb-4">
-            <label for="invite-user-select" class="block text-sm font-medium mb-2">Select User</label>
+            <label for="invite-user-select" class="block text-sm font-medium mb-2"
+              >Select User</label
+            >
             <select
               id="invite-user-select"
               v-model="selectedUserToInvite"
@@ -277,11 +291,7 @@
               class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
             >
               <option value="">Select a user to invite...</option>
-              <option
-                v-for="user in availableUsers"
-                :key="user.id"
-                :value="user.id"
-              >
+              <option v-for="user in availableUsers" :key="user.id" :value="user.id">
                 {{ user.name }} ({{ user.email }})
               </option>
             </select>
@@ -310,11 +320,15 @@
     </div>
 
     <!-- Captain Options Modal -->
-    <div v-if="showCaptainOptionsModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div
+      v-if="showCaptainOptionsModal"
+      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+    >
       <div class="bg-white rounded-lg p-6 w-full max-w-md">
         <h3 class="text-xl font-semibold mb-4">Captain Options</h3>
         <p class="text-gray-600 mb-6">
-          As team captain with other members, you can either transfer captaincy to another member or disband the entire team.
+          As team captain with other members, you can either transfer captaincy to another member or
+          disband the entire team.
         </p>
 
         <div class="space-y-4">
@@ -322,16 +336,9 @@
           <div class="border rounded-lg p-4">
             <h4 class="font-medium mb-2">Transfer Captaincy</h4>
             <p class="text-sm text-gray-600 mb-3">Choose a new captain and leave the team</p>
-            <select
-              v-model="selectedNewCaptain"
-              class="w-full border rounded-lg px-3 py-2 mb-3"
-            >
+            <select v-model="selectedNewCaptain" class="w-full border rounded-lg px-3 py-2 mb-3">
               <option value="">Select new captain...</option>
-              <option
-                v-for="member in otherMembers"
-                :key="member.id"
-                :value="member.id"
-              >
+              <option v-for="member in otherMembers" :key="member.id" :value="member.id">
                 {{ member.name }} ({{ member.email }})
               </option>
             </select>
@@ -347,7 +354,9 @@
           <!-- Disband Team Option -->
           <div class="border border-red-200 rounded-lg p-4">
             <h4 class="font-medium mb-2 text-red-800">Disband Team</h4>
-            <p class="text-sm text-red-600 mb-3">Remove all members and delete the team permanently</p>
+            <p class="text-sm text-red-600 mb-3">
+              Remove all members and delete the team permanently
+            </p>
             <button
               class="w-full bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
               @click="disbandTeam"
@@ -378,7 +387,7 @@ const { isConnected, startPolling, stopPolling } = useRealtime()
 const mockUser = {
   id: 'user_anv',
   email: 'anv@nine.dk',
-  name: 'Aku Nour Shirazi Valta'
+  name: 'Aku Nour Shirazi Valta',
 }
 
 const teams = ref([])
@@ -401,9 +410,9 @@ const isUserCaptain = computed(() => {
 })
 
 const availableTeams = computed(() => {
-  return teams.value.filter(team =>
-    (team.members?.length || 0) < 4 &&
-    !team.members?.find(member => member.id === mockUser.id)
+  return teams.value.filter(
+    team =>
+      (team.members?.length || 0) < 4 && !team.members?.find(member => member.id === mockUser.id)
   )
 })
 
@@ -419,9 +428,8 @@ async function fetchTeams() {
     teams.value = response.teams
 
     // Find user's team
-    userTeam.value = teams.value.find(team =>
-      team.members?.find(member => member.id === mockUser.id)
-    ) || null
+    userTeam.value =
+      teams.value.find(team => team.members?.find(member => member.id === mockUser.id)) || null
 
     console.log('Teams fetched:', teams.value)
     console.log('User team:', userTeam.value)
@@ -437,8 +445,8 @@ async function createTeam() {
       method: 'POST',
       body: {
         name: newTeamName.value,
-        captainEmail: mockUser.email
-      }
+        captainEmail: mockUser.email,
+      },
     })
 
     showCreateModal.value = false
@@ -456,8 +464,8 @@ async function joinTeam(teamId: string) {
       method: 'POST',
       body: {
         teamId,
-        userEmail: mockUser.email
-      }
+        userEmail: mockUser.email,
+      },
     })
 
     showJoinModal.value = false
@@ -482,8 +490,8 @@ async function leaveTeam() {
       method: 'POST',
       body: {
         teamId: userTeam.value.id,
-        userEmail: mockUser.email
-      }
+        userEmail: mockUser.email,
+      },
     })
 
     await fetchTeams()
@@ -503,8 +511,8 @@ async function removeMember(member: any) {
     await $fetch(`/api/teams/${userTeam.value.id}/remove-member`, {
       method: 'POST',
       body: {
-        userEmail: member.email
-      }
+        userEmail: member.email,
+      },
     })
 
     // Refresh team data
@@ -539,8 +547,8 @@ async function inviteMember() {
       method: 'POST',
       body: {
         teamId: userTeam.value.id,
-        userEmail: selectedUser.email
-      }
+        userEmail: selectedUser.email,
+      },
     })
 
     showInviteModal.value = false
@@ -566,8 +574,8 @@ async function transferCaptaincy() {
       body: {
         teamId: userTeam.value.id,
         newCaptainId: selectedNewCaptain.value,
-        currentCaptainEmail: mockUser.email
-      }
+        currentCaptainEmail: mockUser.email,
+      },
     })
 
     showCaptainOptionsModal.value = false
@@ -582,7 +590,8 @@ async function transferCaptaincy() {
 async function disbandTeam() {
   if (!userTeam.value) return
 
-  const confirmMessage = 'Are you sure you want to disband this team? This will remove all members and cannot be undone.'
+  const confirmMessage =
+    'Are you sure you want to disband this team? This will remove all members and cannot be undone.'
   if (!confirm(confirmMessage)) return
 
   try {
@@ -591,8 +600,8 @@ async function disbandTeam() {
       body: {
         teamId: userTeam.value.id,
         userEmail: mockUser.email,
-        forceDisband: true
-      }
+        forceDisband: true,
+      },
     })
 
     showCaptainOptionsModal.value = false
@@ -613,7 +622,7 @@ async function fetchCurrentChallenge() {
     currentChallenge.value = null
     return
   }
-  
+
   try {
     const response = await $fetch(`/api/teams/${userTeam.value.id}/current-challenge`)
     currentChallenge.value = response.data
@@ -628,7 +637,7 @@ function formatDate(dateString: string) {
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
-    minute: '2-digit'
+    minute: '2-digit',
   })
 }
 

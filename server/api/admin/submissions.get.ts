@@ -1,9 +1,9 @@
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   try {
     const config = useRuntimeConfig()
     const { Sequelize } = await import('sequelize')
     const { initModels } = await import('~/server/models')
-    
+
     const sequelize = new Sequelize(config.databaseUrl, { logging: false })
     const { Submission, Task, Team, User } = initModels(sequelize)
 
@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
         {
           model: Task,
           as: 'task',
-          attributes: ['id', 'title', 'category', 'description', 'estimatedTime', 'difficulty']
+          attributes: ['id', 'title', 'category', 'description', 'estimatedTime', 'difficulty'],
         },
         {
           model: Team,
@@ -23,26 +23,26 @@ export default defineEventHandler(async (event) => {
             {
               model: User,
               as: 'captain',
-              attributes: ['id', 'name', 'email']
-            }
-          ]
-        }
+              attributes: ['id', 'name', 'email'],
+            },
+          ],
+        },
       ],
-      order: [['createdAt', 'DESC']]
+      order: [['createdAt', 'DESC']],
     })
 
     await sequelize.close()
 
     return {
       success: true,
-      submissions
+      submissions,
     }
   } catch (error: any) {
     if (error.statusCode) throw error
-    
+
     throw createError({
       statusCode: 500,
-      statusMessage: error.message || 'Failed to fetch admin submissions'
+      statusMessage: error.message || 'Failed to fetch admin submissions',
     })
   }
 })

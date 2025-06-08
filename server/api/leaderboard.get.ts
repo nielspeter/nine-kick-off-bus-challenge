@@ -1,9 +1,9 @@
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   try {
     const config = useRuntimeConfig()
     const { Sequelize } = await import('sequelize')
     const { initModels } = await import('~/server/models')
-    
+
     const sequelize = new Sequelize(config.databaseUrl, { logging: false })
     const { Team, User, Submission } = initModels(sequelize)
 
@@ -13,32 +13,32 @@ export default defineEventHandler(async (event) => {
         {
           model: User,
           as: 'captain',
-          attributes: ['id', 'name', 'email']
+          attributes: ['id', 'name', 'email'],
         },
         {
           model: User,
           as: 'members',
           attributes: ['id', 'name'],
-          through: { attributes: [] }
-        }
-      ]
+          through: { attributes: [] },
+        },
+      ],
     })
 
     // Get submission counts for each team
     const leaderboard = await Promise.all(
-      teams.map(async (team) => {
+      teams.map(async team => {
         const completedCount = await Submission.count({
-          where: { 
+          where: {
             teamId: team.id,
-            status: 'completed'
-          }
+            status: 'completed',
+          },
         })
 
         const inProgressCount = await Submission.count({
-          where: { 
+          where: {
             teamId: team.id,
-            status: 'in_progress'
-          }
+            status: 'in_progress',
+          },
         })
 
         return {
@@ -49,7 +49,7 @@ export default defineEventHandler(async (event) => {
           completedChallenges: completedCount,
           activeChallenges: inProgressCount,
           totalScore: completedCount, // Simple scoring: 1 point per completed challenge
-          lastActivity: team.updatedAt
+          lastActivity: team.updatedAt,
         }
       })
     )
@@ -67,12 +67,12 @@ export default defineEventHandler(async (event) => {
     return {
       success: true,
       leaderboard,
-      lastUpdated: new Date().toISOString()
+      lastUpdated: new Date().toISOString(),
     }
   } catch (error: any) {
     throw createError({
       statusCode: 500,
-      statusMessage: error.message || 'Failed to fetch leaderboard'
+      statusMessage: error.message || 'Failed to fetch leaderboard',
     })
   }
 })

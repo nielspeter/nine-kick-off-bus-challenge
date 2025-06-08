@@ -6,7 +6,7 @@
         <p class="text-gray-600">Competition standings updated in real-time</p>
       </div>
       <div class="flex items-center gap-2">
-        <div 
+        <div
           class="w-3 h-3 rounded-full"
           :class="isConnected ? 'bg-green-500 animate-pulse' : 'bg-gray-400'"
         />
@@ -23,14 +23,14 @@
 
     <!-- Loading State -->
     <div v-if="loading" class="text-center py-12">
-      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"/>
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" />
       <p class="mt-4 text-gray-600">Loading leaderboard...</p>
     </div>
 
     <!-- Leaderboard -->
     <div v-else-if="leaderboard.length > 0" class="space-y-4">
-      <div 
-        v-for="(team, index) in leaderboard" 
+      <div
+        v-for="(team, index) in leaderboard"
         :key="team.id"
         class="bg-white rounded-lg shadow-md overflow-hidden transition-all duration-300 hover:shadow-lg"
         :class="getPositionClass(index)"
@@ -40,26 +40,24 @@
             <div class="flex items-center gap-4">
               <!-- Position -->
               <div class="flex-shrink-0">
-                <div 
+                <div
                   class="w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold"
                   :class="getPositionBadgeClass(index)"
                 >
                   {{ index + 1 }}
                 </div>
               </div>
-              
+
               <!-- Team Info -->
               <div>
                 <h3 class="text-xl font-semibold">{{ team.name }}</h3>
-                <p class="text-gray-600">
-                  Captain: {{ team.captain?.name || 'Unknown' }}
-                </p>
+                <p class="text-gray-600">Captain: {{ team.captain?.name || 'Unknown' }}</p>
                 <p class="text-sm text-gray-500">
                   {{ team.memberCount }} member{{ team.memberCount === 1 ? '' : 's' }}
                 </p>
               </div>
             </div>
-            
+
             <!-- Stats -->
             <div class="text-right">
               <div class="text-2xl font-bold text-primary">
@@ -72,12 +70,14 @@
             </div>
           </div>
         </div>
-        
+
         <!-- Progress indicator for teams with challenges in progress -->
         <div v-if="team.activeChallenges > 0" class="bg-blue-50 px-4 md:px-6 py-2">
           <div class="flex items-center gap-2 text-sm text-blue-800">
-            <div class="w-2 h-2 bg-blue-500 rounded-full animate-pulse"/>
-            Working on {{ team.activeChallenges }} challenge{{ team.activeChallenges === 1 ? '' : 's' }}
+            <div class="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
+            Working on {{ team.activeChallenges }} challenge{{
+              team.activeChallenges === 1 ? '' : 's'
+            }}
           </div>
         </div>
       </div>
@@ -123,10 +123,10 @@ const leaderboard = ref([])
 const lastUpdated = ref('')
 
 const totalTeams = computed(() => leaderboard.value.length)
-const totalCompleted = computed(() => 
+const totalCompleted = computed(() =>
   leaderboard.value.reduce((sum, team) => sum + team.completedChallenges, 0)
 )
-const totalActive = computed(() => 
+const totalActive = computed(() =>
   leaderboard.value.reduce((sum, team) => sum + team.activeChallenges, 0)
 )
 const averageScore = computed(() => {

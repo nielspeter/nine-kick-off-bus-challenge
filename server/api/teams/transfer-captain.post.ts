@@ -1,4 +1,4 @@
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   try {
     const body = await readBody(event)
     const { teamId, newCaptainId, currentCaptainEmail } = body
@@ -6,14 +6,14 @@ export default defineEventHandler(async (event) => {
     if (!teamId || !newCaptainId || !currentCaptainEmail) {
       throw createError({
         statusCode: 400,
-        statusMessage: 'Team ID, new captain ID, and current captain email are required'
+        statusMessage: 'Team ID, new captain ID, and current captain email are required',
       })
     }
 
     const config = useRuntimeConfig()
     const { Sequelize } = await import('sequelize')
     const { initModels } = await import('~/server/models')
-    
+
     const sequelize = new Sequelize(config.databaseUrl, { logging: false })
     const { User, Team } = initModels(sequelize)
 
@@ -23,7 +23,7 @@ export default defineEventHandler(async (event) => {
       await sequelize.close()
       throw createError({
         statusCode: 404,
-        statusMessage: 'Current captain not found'
+        statusMessage: 'Current captain not found',
       })
     }
 
@@ -33,7 +33,7 @@ export default defineEventHandler(async (event) => {
       await sequelize.close()
       throw createError({
         statusCode: 404,
-        statusMessage: 'Team not found'
+        statusMessage: 'Team not found',
       })
     }
 
@@ -42,7 +42,7 @@ export default defineEventHandler(async (event) => {
       await sequelize.close()
       throw createError({
         statusCode: 403,
-        statusMessage: 'Only the current captain can transfer captaincy'
+        statusMessage: 'Only the current captain can transfer captaincy',
       })
     }
 
@@ -52,7 +52,7 @@ export default defineEventHandler(async (event) => {
       await sequelize.close()
       throw createError({
         statusCode: 404,
-        statusMessage: 'New captain not found'
+        statusMessage: 'New captain not found',
       })
     }
 
@@ -66,21 +66,18 @@ export default defineEventHandler(async (event) => {
       await sequelize.close()
       throw createError({
         statusCode: 400,
-        statusMessage: 'New captain must be a member of the team'
+        statusMessage: 'New captain must be a member of the team',
       })
     }
 
     // Transfer captaincy
-    await Team.update(
-      { captainId: newCaptainId },
-      { where: { id: teamId } }
-    )
+    await Team.update({ captainId: newCaptainId }, { where: { id: teamId } })
 
     // Remove current captain from team
-    await sequelize.query(
-      'DELETE FROM "TeamMembers" WHERE "TeamId" = ? AND "UserId" = ?',
-      { replacements: [teamId, currentCaptain.id], type: sequelize.QueryTypes.DELETE }
-    )
+    await sequelize.query('DELETE FROM "TeamMembers" WHERE "TeamId" = ? AND "UserId" = ?', {
+      replacements: [teamId, currentCaptain.id],
+      type: sequelize.QueryTypes.DELETE,
+    })
 
     // Fetch updated team data
     const updatedTeam = await Team.findByPk(teamId, {
@@ -88,14 +85,14 @@ export default defineEventHandler(async (event) => {
         {
           model: User,
           as: 'members',
-          attributes: ['id', 'email', 'name', 'picture', 'role']
+          attributes: ['id', 'email', 'name', 'picture', 'role'],
         },
         {
           model: User,
           as: 'captain',
-          attributes: ['id', 'email', 'name', 'picture', 'role']
-        }
-      ]
+          attributes: ['id', 'email', 'name', 'picture', 'role'],
+        },
+      ],
     })
 
     await sequelize.close()
@@ -103,14 +100,14 @@ export default defineEventHandler(async (event) => {
     return {
       success: true,
       team: updatedTeam,
-      message: `Captaincy transferred to ${newCaptain.name}. ${currentCaptain.name} left the team.`
+      message: `Captaincy transferred to ${newCaptain.name}. ${currentCaptain.name} left the team.`,
     }
   } catch (error: any) {
     if (error.statusCode) throw error
-    
+
     throw createError({
       statusCode: 500,
-      statusMessage: error.message || 'Failed to transfer captaincy'
+      statusMessage: error.message || 'Failed to transfer captaincy',
     })
   }
 })

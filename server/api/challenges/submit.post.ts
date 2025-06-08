@@ -1,4 +1,4 @@
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   try {
     const body = await readBody(event)
     const { submissionId, finalAnswers } = body
@@ -6,14 +6,14 @@ export default defineEventHandler(async (event) => {
     if (!submissionId || !finalAnswers) {
       throw createError({
         statusCode: 400,
-        statusMessage: 'Submission ID and final answers are required'
+        statusMessage: 'Submission ID and final answers are required',
       })
     }
 
     const config = useRuntimeConfig()
     const { Sequelize } = await import('sequelize')
     const { initModels } = await import('~/server/models')
-    
+
     const sequelize = new Sequelize(config.databaseUrl, { logging: false })
     const { Submission, Task, Team } = initModels(sequelize)
 
@@ -23,21 +23,21 @@ export default defineEventHandler(async (event) => {
         {
           model: Task,
           as: 'task',
-          attributes: ['title', 'category', 'description']
+          attributes: ['title', 'category', 'description'],
         },
         {
           model: Team,
           as: 'team',
-          attributes: ['name']
-        }
-      ]
+          attributes: ['name'],
+        },
+      ],
     })
 
     if (!submission) {
       await sequelize.close()
       throw createError({
         statusCode: 404,
-        statusMessage: 'Submission not found'
+        statusMessage: 'Submission not found',
       })
     }
 
@@ -45,7 +45,7 @@ export default defineEventHandler(async (event) => {
       await sequelize.close()
       throw createError({
         statusCode: 400,
-        statusMessage: 'Challenge is not active'
+        statusMessage: 'Challenge is not active',
       })
     }
 
@@ -53,7 +53,7 @@ export default defineEventHandler(async (event) => {
     await submission.update({
       status: 'completed',
       finalAnswers,
-      submittedAt: new Date()
+      submittedAt: new Date(),
     })
 
     await sequelize.close()
@@ -61,14 +61,14 @@ export default defineEventHandler(async (event) => {
     return {
       success: true,
       submission,
-      message: 'Challenge submitted successfully!'
+      message: 'Challenge submitted successfully!',
     }
   } catch (error: any) {
     if (error.statusCode) throw error
-    
+
     throw createError({
       statusCode: 500,
-      statusMessage: error.message || 'Failed to submit challenge'
+      statusMessage: error.message || 'Failed to submit challenge',
     })
   }
 })

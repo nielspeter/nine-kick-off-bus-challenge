@@ -11,21 +11,24 @@ export async function getDatabase(): Promise<Sequelize> {
   if (!config.databaseUrl) {
     throw new Error('DATABASE_URL not configured')
   }
-  
+
   const { Sequelize } = await import('sequelize')
   sequelizeInstance = new Sequelize(config.databaseUrl, {
     logging: false,
     dialectOptions: {
-      ssl: process.env.NODE_ENV === 'production' ? {
-        require: true,
-        rejectUnauthorized: false
-      } : false
-    }
+      ssl:
+        process.env.NODE_ENV === 'production'
+          ? {
+              require: true,
+              rejectUnauthorized: false,
+            }
+          : false,
+    },
   })
 
   // Test the connection
   await sequelizeInstance.authenticate()
   console.log('✅ Database singleton connection established')
-  
+
   return sequelizeInstance
 }

@@ -6,14 +6,20 @@
     </div>
 
     <!-- Team Status -->
-    <NuxtLink v-if="userTeam" to="/team" class="block bg-white rounded-lg shadow-md p-4 md:p-6 mb-8 hover:shadow-lg transition-shadow cursor-pointer">
+    <NuxtLink
+      v-if="userTeam"
+      to="/team"
+      class="block bg-white rounded-lg shadow-md p-4 md:p-6 mb-8 hover:shadow-lg transition-shadow cursor-pointer"
+    >
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-0">
         <div>
           <h2 class="text-xl font-semibold">{{ userTeam.name }}</h2>
           <p class="text-gray-600">{{ userTeam.members?.length || 0 }} members</p>
         </div>
         <div class="text-left md:text-right">
-          <div class="text-2xl font-bold text-blue-600">{{ completedChallenges }}/{{ totalChallenges }}</div>
+          <div class="text-2xl font-bold text-blue-600">
+            {{ completedChallenges }}/{{ totalChallenges }}
+          </div>
           <div class="text-sm text-gray-600">Challenges Completed</div>
         </div>
       </div>
@@ -28,8 +34,8 @@
           <p class="text-yellow-700">You need to be part of a team to participate in challenges.</p>
         </div>
       </div>
-      <NuxtLink 
-        to="/team" 
+      <NuxtLink
+        to="/team"
         class="mt-4 inline-block bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700"
       >
         Go to Team Management
@@ -37,7 +43,10 @@
     </div>
 
     <!-- Competition Status Warning -->
-    <div v-if="userTeam && !canStartChallenges" class="bg-orange-50 border border-orange-200 rounded-lg p-4 md:p-6 mb-8">
+    <div
+      v-if="userTeam && !canStartChallenges"
+      class="bg-orange-50 border border-orange-200 rounded-lg p-4 md:p-6 mb-8"
+    >
       <div class="flex items-center gap-3">
         <Icon name="heroicons:clock" class="w-6 h-6 text-orange-600" />
         <div>
@@ -51,8 +60,8 @@
 
     <!-- Challenge Categories -->
     <div v-if="userTeam" class="grid gap-8">
-      <div 
-        v-for="(categoryTasks, category) in groupedTasks" 
+      <div
+        v-for="(categoryTasks, category) in groupedTasks"
         :key="category"
         class="bg-white rounded-lg shadow-md overflow-hidden"
       >
@@ -60,16 +69,19 @@
           <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-0">
             <div>
               <h2 class="text-2xl font-bold">{{ category }}</h2>
-              <p class="opacity-90">{{ categoryTasks.length }} challenge{{ categoryTasks.length === 1 ? '' : 's' }} available</p>
+              <p class="opacity-90">
+                {{ categoryTasks.length }} challenge{{ categoryTasks.length === 1 ? '' : 's' }}
+                available
+              </p>
             </div>
             <div class="text-3xl">{{ getCategoryIcon(category) }}</div>
           </div>
         </div>
-        
+
         <div class="p-6">
           <div class="grid gap-4">
-            <div 
-              v-for="task in categoryTasks" 
+            <div
+              v-for="task in categoryTasks"
               :key="task.id"
               class="border rounded-lg p-4 hover:shadow-md transition-shadow"
               :class="getTaskStatusClass(task)"
@@ -78,7 +90,7 @@
                 <div class="flex-1">
                   <h3 class="text-lg font-semibold mb-2">{{ task.title }}</h3>
                   <p class="text-gray-600 mb-3">{{ task.description }}</p>
-                  
+
                   <div class="flex items-center gap-4 text-sm text-gray-500">
                     <div class="flex items-center gap-1">
                       <Icon name="heroicons:clock" class="w-4 h-4" />
@@ -88,41 +100,52 @@
                       <Icon name="heroicons:star" class="w-4 h-4" />
                       {{ getDifficultyText(task.difficulty) }}
                     </div>
-                    <div v-if="getTaskStatus(task) === 'completed'" class="flex items-center gap-1 text-green-600">
+                    <div
+                      v-if="getTaskStatus(task) === 'completed'"
+                      class="flex items-center gap-1 text-green-600"
+                    >
                       <Icon name="heroicons:check-circle" class="w-4 h-4" />
                       Completed
                     </div>
-                    <div v-else-if="getTaskStatus(task) === 'in_progress'" class="flex items-center gap-1 text-blue-600">
+                    <div
+                      v-else-if="getTaskStatus(task) === 'in_progress'"
+                      class="flex items-center gap-1 text-blue-600"
+                    >
                       <Icon name="heroicons:play-circle" class="w-4 h-4" />
                       In Progress
                     </div>
                   </div>
                 </div>
-                
+
                 <div class="ml-4">
                   <div v-if="getTaskStatus(task) === 'available'" class="text-right">
-                    <button 
+                    <button
                       :disabled="!isTaskAvailable(task)"
                       class="px-4 py-2 rounded-lg font-medium"
-                      :class="isTaskAvailable(task) 
-                        ? 'bg-blue-600 text-white hover:bg-blue-700' 
-                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'"
+                      :class="
+                        isTaskAvailable(task)
+                          ? 'bg-blue-600 text-white hover:bg-blue-700'
+                          : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      "
                       @click="startChallenge(task)"
                     >
                       Start Challenge
                     </button>
-                    <div v-if="!isTaskAvailable(task) && canStartChallenges && hasActiveChallenge()" class="text-xs text-gray-500 mt-1">
+                    <div
+                      v-if="!isTaskAvailable(task) && canStartChallenges && hasActiveChallenge()"
+                      class="text-xs text-gray-500 mt-1"
+                    >
                       Complete current challenge first
                     </div>
                   </div>
-                  <button 
+                  <button
                     v-else-if="getTaskStatus(task) === 'in_progress'"
                     class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
                     @click="continueChallenge(task)"
                   >
                     Continue
                   </button>
-                  <div 
+                  <div
                     v-else-if="getTaskStatus(task) === 'completed'"
                     class="bg-green-100 text-green-800 px-4 py-2 rounded-lg font-medium"
                   >
@@ -138,7 +161,7 @@
 
     <!-- Loading State -->
     <div v-if="loading" class="text-center py-12">
-      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"/>
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" />
       <p class="mt-4 text-gray-600">Loading challenges...</p>
     </div>
   </div>
@@ -151,7 +174,7 @@ import { useCompetitionTimer } from '~/composables/useCompetitionTimer'
 const mockUser = {
   id: 'user_anv',
   email: 'anv@nine.dk',
-  name: 'Aku Nour Shirazi Valta'
+  name: 'Aku Nour Shirazi Valta',
 }
 
 const loading = ref(true)
@@ -164,8 +187,8 @@ const submissions = ref([])
 const { competitionStatus, competitionState, startTimer } = useCompetitionTimer()
 
 const totalChallenges = computed(() => tasks.value.length)
-const completedChallenges = computed(() => 
-  submissions.value.filter(sub => sub.status === 'completed').length
+const completedChallenges = computed(
+  () => submissions.value.filter(sub => sub.status === 'completed').length
 )
 
 // Competition state checks
@@ -173,14 +196,14 @@ const canStartChallenges = computed(() => {
   if (!competitionState.value) return false
   if (!competitionState.value.isStarted) return false
   if (competitionState.value.isPaused) return false
-  
+
   // Check if competition has ended
   if (competitionState.value.endTime) {
     const now = new Date()
     const endTime = new Date(competitionState.value.endTime)
     if (now > endTime) return false
   }
-  
+
   return true
 })
 
@@ -188,51 +211,52 @@ const competitionStatusMessage = computed(() => {
   if (!competitionState.value) {
     return {
       title: 'Loading competition status...',
-      description: 'Please wait while we check the competition status.'
+      description: 'Please wait while we check the competition status.',
     }
   }
-  
+
   if (!competitionState.value.isStarted) {
     return {
       title: 'Competition Not Started',
-      description: 'The competition has not started yet. Please wait for an admin to start the competition.'
+      description:
+        'The competition has not started yet. Please wait for an admin to start the competition.',
     }
   }
-  
+
   if (competitionState.value.isPaused) {
     return {
       title: 'Competition Paused',
-      description: 'The competition is currently paused. Please wait for it to resume.'
+      description: 'The competition is currently paused. Please wait for it to resume.',
     }
   }
-  
+
   if (competitionState.value.endTime) {
     const now = new Date()
     const endTime = new Date(competitionState.value.endTime)
     if (now > endTime) {
       return {
         title: 'Competition Ended',
-        description: 'The competition has ended. No new challenges can be started.'
+        description: 'The competition has ended. No new challenges can be started.',
       }
     }
   }
-  
+
   return {
     title: '',
-    description: ''
+    description: '',
   }
 })
 
 function getCategoryIcon(category: string) {
   const icons = {
-    'Test': '🧪',
+    Test: '🧪',
     'Project Management': '📋',
-    'Backend': '⚙️',
-    'Frontend': '🎨',
-    'Sales': '💼',
+    Backend: '⚙️',
+    Frontend: '🎨',
+    Sales: '💼',
     'Business Analysis': '📊',
     'BUL/Sales': '🤝',
-    'Communication': '📢'
+    Communication: '📢',
   }
   return icons[category] || '📝'
 }
@@ -255,7 +279,7 @@ function hasActiveChallenge() {
 function isTaskAvailable(task: any) {
   // First check if competition allows starting challenges
   if (!canStartChallenges.value) return false
-  
+
   const taskStatus = getTaskStatus(task)
   if (taskStatus === 'completed') return false
   if (taskStatus === 'in_progress') return true
@@ -273,23 +297,23 @@ function getTaskStatusClass(task: any) {
 async function startChallenge(task: any) {
   console.log('startChallenge called with task:', task)
   console.log('userTeam.value:', userTeam.value)
-  
+
   if (!userTeam.value) {
     console.error('No user team found!')
     alert('You need to be on a team to start challenges. Please go to the Team Management page.')
     return
   }
-  
+
   try {
     console.log('Starting challenge with teamId:', userTeam.value.id, 'taskId:', task.id)
     const response = await $fetch('/api/challenges/start', {
       method: 'POST',
       body: {
         teamId: userTeam.value.id,
-        taskId: task.id
-      }
+        taskId: task.id,
+      },
     })
-    
+
     console.log('Challenge start response:', response)
     // Navigate to challenge interface
     await navigateTo(`/challenge/${response.submission.id}`)
@@ -300,7 +324,9 @@ async function startChallenge(task: any) {
 }
 
 async function continueChallenge(task: any) {
-  const submission = submissions.value.find(sub => sub.taskId === task.id && sub.status === 'in_progress')
+  const submission = submissions.value.find(
+    sub => sub.taskId === task.id && sub.status === 'in_progress'
+  )
   if (submission) {
     await navigateTo(`/challenge/${submission.id}`)
   }
@@ -310,7 +336,7 @@ async function fetchData() {
   loading.value = true
   try {
     console.log('Fetching data...')
-    
+
     // Fetch challenges
     const challengesResponse = await $fetch('/api/challenges')
     console.log('Challenges response:', challengesResponse)
@@ -321,11 +347,11 @@ async function fetchData() {
     const teamsResponse = await $fetch('/api/teams')
     console.log('Teams response:', teamsResponse)
     console.log('Looking for user with ID:', mockUser.id)
-    
-    userTeam.value = teamsResponse.teams.find(team => 
-      team.members?.find(member => member.id === mockUser.id)
-    ) || null
-    
+
+    userTeam.value =
+      teamsResponse.teams.find(team => team.members?.find(member => member.id === mockUser.id)) ||
+      null
+
     console.log('Found user team:', userTeam.value)
 
     // Fetch team's submissions if user has a team
@@ -334,7 +360,10 @@ async function fetchData() {
         console.log('Fetching submissions for team:', userTeam.value.id)
         const submissionsResponse = await $fetch(`/api/teams/${userTeam.value.id}/submissions`)
         console.log('Submissions response:', submissionsResponse)
-        submissions.value = (submissionsResponse.success && submissionsResponse.submissions) ? submissionsResponse.submissions : []
+        submissions.value =
+          submissionsResponse.success && submissionsResponse.submissions
+            ? submissionsResponse.submissions
+            : []
       } catch (error) {
         console.error('Failed to fetch submissions:', error)
         submissions.value = []

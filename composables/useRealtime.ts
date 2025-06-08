@@ -9,10 +9,10 @@ export const useRealtime = () => {
     }
 
     isConnected.value = true
-    
+
     // Initial fetch
     callback()
-    
+
     // Set up polling
     updateInterval.value = setInterval(async () => {
       try {
@@ -39,6 +39,6 @@ export const useRealtime = () => {
   return {
     isConnected: readonly(isConnected),
     startPolling,
-    stopPolling
+    stopPolling,
   }
 }

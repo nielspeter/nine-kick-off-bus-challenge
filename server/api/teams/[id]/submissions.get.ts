@@ -1,20 +1,21 @@
 import { getDatabase } from '~/server/utils/db'
 
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   try {
     const teamId = getRouterParam(event, 'id')
-    
+
     if (!teamId) {
       throw createError({
         statusCode: 400,
-        statusMessage: 'Team ID is required'
+        statusMessage: 'Team ID is required',
       })
     }
 
     const sequelize = await getDatabase()
 
     // Get all submissions for this team
-    const [results] = await sequelize.query(`
+    const [results] = await sequelize.query(
+      `
       SELECT 
         s.*,
         t.title as task_title,
@@ -26,20 +27,22 @@ export default defineEventHandler(async (event) => {
       JOIN "Tasks" t ON s."taskId" = t.id
       WHERE s."teamId" = :teamId
       ORDER BY s."createdAt" DESC
-    `, {
-      replacements: { teamId }
-    })
+    `,
+      {
+        replacements: { teamId },
+      }
+    )
 
     return {
       success: true,
-      submissions: results || []
+      submissions: results || [],
     }
   } catch (error: any) {
     if (error.statusCode) throw error
-    
+
     throw createError({
       statusCode: 500,
-      statusMessage: error.message || 'Failed to fetch team submissions'
+      statusMessage: error.message || 'Failed to fetch team submissions',
     })
   }
 })

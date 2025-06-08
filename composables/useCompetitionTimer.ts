@@ -20,10 +20,10 @@ export const useCompetitionTimer = () => {
 
   function updateTimer() {
     if (!competitionState.value) return
-    
+
     const now = new Date()
     const { isStarted, startTime, endTime, isPaused } = competitionState.value
-    
+
     if (!isStarted) {
       // Competition not started
       competitionStatus.value = 'upcoming'
@@ -37,13 +37,13 @@ export const useCompetitionTimer = () => {
     } else if (startTime && endTime) {
       const start = new Date(startTime)
       const end = new Date(endTime)
-      
+
       if (now < end) {
         // Competition is active
         competitionStatus.value = 'active'
         const timeDiff = end.getTime() - now.getTime()
         timeLeft.value = formatTimeLeft(timeDiff)
-        
+
         // Calculate progress (0-100%)
         const totalDuration = end.getTime() - start.getTime()
         const elapsed = now.getTime() - start.getTime()
@@ -59,12 +59,12 @@ export const useCompetitionTimer = () => {
 
   function formatTimeLeft(milliseconds: number) {
     if (milliseconds <= 0) return '00:00:00'
-    
+
     const totalSeconds = Math.floor(milliseconds / 1000)
     const hours = Math.floor(totalSeconds / 3600)
     const minutes = Math.floor((totalSeconds % 3600) / 60)
     const seconds = totalSeconds % 60
-    
+
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
   }
 
@@ -125,6 +125,6 @@ export const useCompetitionTimer = () => {
     stopTimer,
     getStatusMessage,
     getStatusColor,
-    competitionState: readonly(competitionState)
+    competitionState: readonly(competitionState),
   }
 }

@@ -1,9 +1,9 @@
 import { getDatabase } from '~/server/utils/db'
 
-export default defineEventHandler(async (_event) => {
+export default defineEventHandler(async _event => {
   try {
     const sequelize = await getDatabase()
-    
+
     // Get all users with their team information
     const [results] = await sequelize.query(`
       SELECT 
@@ -31,24 +31,26 @@ export default defineEventHandler(async (_event) => {
       picture: user.picture,
       role: user.role,
       isAdmin: user.isAdmin,
-      team: user.team_id ? {
-        id: user.team_id,
-        name: user.team_name,
-        captainId: user.team_captain_id,
-        isCaptain: user.is_captain
-      } : null
+      team: user.team_id
+        ? {
+            id: user.team_id,
+            name: user.team_name,
+            captainId: user.team_captain_id,
+            isCaptain: user.is_captain,
+          }
+        : null,
     }))
 
     return {
       success: true,
-      data: usersWithTeamInfo
+      data: usersWithTeamInfo,
     }
   } catch (error) {
     console.error('Database error:', error)
     return {
       success: false,
       data: [],
-      error: String(error)
+      error: String(error),
     }
   }
 })

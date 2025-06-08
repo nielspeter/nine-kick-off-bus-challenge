@@ -12,44 +12,47 @@
 
           <!-- Navigation Links -->
           <div class="hidden md:flex items-center space-x-6">
-            <NuxtLink 
-              to="/" 
+            <NuxtLink
+              to="/"
               class="text-gray-700 hover:text-primary transition-colors"
               :class="{ 'text-primary font-medium': $route.path === '/' }"
             >
               Home
             </NuxtLink>
-            <NuxtLink 
-              to="/team" 
+            <NuxtLink
+              to="/team"
               class="text-gray-700 hover:text-primary transition-colors"
               :class="{ 'text-primary font-medium': $route.path.startsWith('/team') }"
             >
               Teams
             </NuxtLink>
-            <NuxtLink 
-              to="/tasks" 
+            <NuxtLink
+              to="/tasks"
               class="text-gray-700 hover:text-primary transition-colors"
-              :class="{ 'text-primary font-medium': $route.path.startsWith('/tasks') || $route.path.startsWith('/challenge') }"
+              :class="{
+                'text-primary font-medium':
+                  $route.path.startsWith('/tasks') || $route.path.startsWith('/challenge'),
+              }"
             >
               Challenges
             </NuxtLink>
-            <NuxtLink 
-              to="/leaderboard" 
+            <NuxtLink
+              to="/leaderboard"
               class="text-gray-700 hover:text-primary transition-colors"
               :class="{ 'text-primary font-medium': $route.path.startsWith('/leaderboard') }"
             >
               Leaderboard
             </NuxtLink>
-            <NuxtLink 
-              to="/users" 
+            <NuxtLink
+              to="/users"
               class="text-gray-700 hover:text-primary transition-colors"
               :class="{ 'text-primary font-medium': $route.path.startsWith('/users') }"
             >
               Users
             </NuxtLink>
-            <NuxtLink 
+            <NuxtLink
               v-if="userIsAdmin"
-              to="/admin" 
+              to="/admin"
               class="text-gray-700 hover:text-primary transition-colors"
               :class="{ 'text-primary font-medium': $route.path.startsWith('/admin') }"
             >
@@ -61,39 +64,36 @@
           <div class="flex items-center space-x-4">
             <!-- Current user -->
             <div v-if="user" class="hidden md:flex items-center space-x-2">
-              <img 
-                v-if="(user as any).picture" 
-                :src="(user as any).picture" 
+              <img
+                v-if="(user as any).picture"
+                :src="(user as any).picture"
                 :alt="(user as any).name"
                 class="w-8 h-8 rounded-full"
-              >
-              <div 
-                v-else 
+              />
+              <div
+                v-else
                 class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-medium"
               >
                 {{ (user as any).name?.charAt(0) || '?' }}
               </div>
               <span class="text-gray-700">{{ (user as any).name }}</span>
-              <button 
-                class="text-gray-500 hover:text-gray-700 text-sm"
-                @click="logout"
-              >
+              <button class="text-gray-500 hover:text-gray-700 text-sm" @click="logout">
                 Logout
               </button>
             </div>
-            
+
             <!-- Login button when not authenticated -->
             <div v-else class="hidden md:flex">
-              <NuxtLink 
+              <NuxtLink
                 to="/auth/signin"
                 class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
               >
                 Sign In
               </NuxtLink>
             </div>
-            
+
             <!-- Mobile menu button -->
-            <button 
+            <button
               class="md:hidden p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100"
               @click="showMobileMenu = !showMobileMenu"
             >
@@ -105,78 +105,78 @@
         <!-- Mobile Menu -->
         <div v-if="showMobileMenu" class="md:hidden py-4 border-t">
           <div class="space-y-2">
-            <NuxtLink 
-              to="/" 
+            <NuxtLink
+              to="/"
               class="block px-3 py-2 text-gray-700 hover:text-primary hover:bg-gray-50 rounded-md"
               @click="showMobileMenu = false"
             >
               Home
             </NuxtLink>
-            <NuxtLink 
-              to="/team" 
+            <NuxtLink
+              to="/team"
               class="block px-3 py-2 text-gray-700 hover:text-primary hover:bg-gray-50 rounded-md"
               @click="showMobileMenu = false"
             >
               Teams
             </NuxtLink>
-            <NuxtLink 
-              to="/tasks" 
+            <NuxtLink
+              to="/tasks"
               class="block px-3 py-2 text-gray-700 hover:text-primary hover:bg-gray-50 rounded-md"
               @click="showMobileMenu = false"
             >
               Challenges
             </NuxtLink>
-            <NuxtLink 
-              to="/leaderboard" 
+            <NuxtLink
+              to="/leaderboard"
               class="block px-3 py-2 text-gray-700 hover:text-primary hover:bg-gray-50 rounded-md"
               @click="showMobileMenu = false"
             >
               Leaderboard
             </NuxtLink>
-            <NuxtLink 
-              to="/users" 
+            <NuxtLink
+              to="/users"
               class="block px-3 py-2 text-gray-700 hover:text-primary hover:bg-gray-50 rounded-md"
               @click="showMobileMenu = false"
             >
               Users
             </NuxtLink>
-            <NuxtLink 
+            <NuxtLink
               v-if="userIsAdmin"
-              to="/admin" 
+              to="/admin"
               class="block px-3 py-2 text-gray-700 hover:text-primary hover:bg-gray-50 rounded-md"
               @click="showMobileMenu = false"
             >
               Admin
             </NuxtLink>
-            
+
             <!-- Mobile User Info -->
             <div v-if="user" class="border-t pt-2 mt-2">
               <div class="px-3 py-2 flex items-center space-x-2">
-                <img 
-                  v-if="(user as any).picture" 
-                  :src="(user as any).picture" 
+                <img
+                  v-if="(user as any).picture"
+                  :src="(user as any).picture"
                   :alt="(user as any).name"
                   class="w-6 h-6 rounded-full"
-                >
-                <div 
-                  v-else 
+                />
+                <div
+                  v-else
                   class="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-medium"
                 >
                   {{ (user as any).name?.charAt(0) || '?' }}
                 </div>
                 <span class="text-gray-700 text-sm">{{ (user as any).name }}</span>
               </div>
-              <button 
+              <button
                 class="w-full text-left px-3 py-2 text-red-600 hover:bg-red-50 rounded-md"
                 @click="logout"
               >
                 Logout
               </button>
             </div>
-            
+
             <!-- Mobile Login -->
             <div v-else class="border-t pt-2 mt-2">
-              <NuxtLink 
+              <NuxtLink
                 to="/auth/signin"
                 class="block px-3 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-md text-center"
                 @click="showMobileMenu = false"
@@ -218,9 +218,12 @@ const userIsAdmin = computed(() => {
 
 // Close mobile menu when route changes
 const route = useRoute()
-watch(() => route.path, () => {
-  showMobileMenu.value = false
-})
+watch(
+  () => route.path,
+  () => {
+    showMobileMenu.value = false
+  }
+)
 
 async function logout() {
   await signOut()

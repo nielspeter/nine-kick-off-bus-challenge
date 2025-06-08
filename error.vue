@@ -5,11 +5,7 @@
       <div class="text-center mb-12">
         <!-- Error Icon -->
         <div class="mx-auto h-20 w-20 flex items-center justify-center mb-6">
-          <Icon 
-            :name="errorIcon" 
-            class="h-20 w-20"
-            :class="errorIconColor"
-          />
+          <Icon :name="errorIcon" class="h-20 w-20" :class="errorIconColor" />
         </div>
 
         <!-- Error Code -->
@@ -30,10 +26,16 @@
         <div v-if="error.statusCode === 403" class="mb-6">
           <div class="bg-red-50 border border-red-200 rounded-lg p-4">
             <div class="flex items-start">
-              <Icon name="heroicons:shield-exclamation" class="h-5 w-5 text-red-600 mt-0.5 mr-3 flex-shrink-0" />
+              <Icon
+                name="heroicons:shield-exclamation"
+                class="h-5 w-5 text-red-600 mt-0.5 mr-3 flex-shrink-0"
+              />
               <div class="text-sm text-red-800">
                 <p class="font-medium">Admin Access Required</p>
-                <p class="mt-1">Only administrators can access this section. If you believe you should have access, please contact your system administrator.</p>
+                <p class="mt-1">
+                  Only administrators can access this section. If you believe you should have
+                  access, please contact your system administrator.
+                </p>
               </div>
             </div>
           </div>
@@ -43,10 +45,16 @@
         <div v-if="error.statusCode === 404" class="mb-6">
           <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <div class="flex items-start">
-              <Icon name="heroicons:information-circle" class="h-5 w-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" />
+              <Icon
+                name="heroicons:information-circle"
+                class="h-5 w-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0"
+              />
               <div class="text-sm text-blue-800">
                 <p class="font-medium">Page Not Found</p>
-                <p class="mt-1">The page you're looking for might have been moved, deleted, or the URL might be incorrect. Try navigating using the menu above.</p>
+                <p class="mt-1">
+                  The page you're looking for might have been moved, deleted, or the URL might be
+                  incorrect. Try navigating using the menu above.
+                </p>
               </div>
             </div>
           </div>
@@ -56,10 +64,15 @@
         <div v-if="error.statusCode >= 500" class="mb-6">
           <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
             <div class="flex items-start">
-              <Icon name="heroicons:exclamation-triangle" class="h-5 w-5 text-yellow-600 mt-0.5 mr-3 flex-shrink-0" />
+              <Icon
+                name="heroicons:exclamation-triangle"
+                class="h-5 w-5 text-yellow-600 mt-0.5 mr-3 flex-shrink-0"
+              />
               <div class="text-sm text-yellow-800">
                 <p class="font-medium">Server Error</p>
-                <p class="mt-1">We're experiencing technical difficulties. Please try again in a few moments.</p>
+                <p class="mt-1">
+                  We're experiencing technical difficulties. Please try again in a few moments.
+                </p>
               </div>
             </div>
           </div>
@@ -73,7 +86,7 @@
           >
             {{ primaryAction }}
           </button>
-          
+
           <NuxtLink
             to="/"
             class="bg-gray-100 text-gray-700 py-3 px-6 rounded-md hover:bg-gray-200 transition-colors font-medium text-center"
@@ -137,12 +150,12 @@ const errorMessage = computed(() => {
   if (props.error.statusMessage) {
     return props.error.statusMessage
   }
-  
+
   switch (props.error.statusCode) {
     case 403:
-      return 'You don\'t have permission to access this resource.'
+      return "You don't have permission to access this resource."
     case 404:
-      return 'The page you\'re looking for doesn\'t exist.'
+      return "The page you're looking for doesn't exist."
     case 500:
       return 'An internal server error occurred.'
     default:
@@ -202,6 +215,6 @@ const handleError = () => {
 
 // Set page title based on error
 useHead({
-  title: `${props.error.statusCode} - ${errorTitle.value} | Nine KickOff Bus Challenge`
+  title: `${props.error.statusCode} - ${errorTitle.value} | Nine KickOff Bus Challenge`,
 })
 </script>

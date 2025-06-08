@@ -1,4 +1,4 @@
-export default defineEventHandler(async (event) => {
+export default defineEventHandler(async event => {
   try {
     const body = await readBody(event)
     const { submissionId, message, provider = 'openai' } = body
@@ -6,14 +6,14 @@ export default defineEventHandler(async (event) => {
     if (!submissionId || !message) {
       throw createError({
         statusCode: 400,
-        statusMessage: 'Submission ID and message are required'
+        statusMessage: 'Submission ID and message are required',
       })
     }
 
     const config = useRuntimeConfig()
     const { Sequelize } = await import('sequelize')
     const { initModels } = await import('~/server/models')
-    
+
     const sequelize = new Sequelize(config.databaseUrl, { logging: false })
     const { Submission, Task, Team } = initModels(sequelize)
 
@@ -23,21 +23,21 @@ export default defineEventHandler(async (event) => {
         {
           model: Task,
           as: 'task',
-          attributes: ['title', 'category', 'description', 'estimatedTime', 'difficulty']
+          attributes: ['title', 'category', 'description', 'estimatedTime', 'difficulty'],
         },
         {
           model: Team,
           as: 'team',
-          attributes: ['name']
-        }
-      ]
+          attributes: ['name'],
+        },
+      ],
     })
 
     if (!submission) {
       await sequelize.close()
       throw createError({
         statusCode: 404,
-        statusMessage: 'Submission not found'
+        statusMessage: 'Submission not found',
       })
     }
 
@@ -45,7 +45,7 @@ export default defineEventHandler(async (event) => {
       await sequelize.close()
       throw createError({
         statusCode: 400,
-        statusMessage: 'Challenge is not active'
+        statusMessage: 'Challenge is not active',
       })
     }
 
@@ -53,7 +53,7 @@ export default defineEventHandler(async (event) => {
     let aiResponse
     const team = (submission as any).team
     const task = (submission as any).task
-    
+
     const systemPrompt = `You are an AI assistant helping Team "${team.name}" with the "${task.title}" challenge in the "${task.category}" category.
 
 Challenge Description: ${task.description}
@@ -75,19 +75,19 @@ Remember: This is a creativity competition, so focus on innovative and unique ap
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${config.openaiApiKey}`,
-          'Content-Type': 'application/json'
+          Authorization: `Bearer ${config.openaiApiKey}`,
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           model: 'gpt-4',
           messages: [
             { role: 'system', content: systemPrompt },
             ...(submission.chatHistory as any[]),
-            { role: 'user', content: message }
+            { role: 'user', content: message },
           ],
           max_tokens: 1000,
-          temperature: 0.8
-        })
+          temperature: 0.8,
+        }),
       })
 
       if (!response.ok) {
@@ -103,17 +103,14 @@ Remember: This is a creativity competition, so focus on innovative and unique ap
         headers: {
           'x-api-key': config.claudeApiKey,
           'anthropic-version': '2023-06-01',
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           model: 'claude-3-sonnet-20240229',
           max_tokens: 1000,
           system: systemPrompt,
-          messages: [
-            ...(submission.chatHistory as any[]),
-            { role: 'user', content: message }
-          ]
-        })
+          messages: [...(submission.chatHistory as any[]), { role: 'user', content: message }],
+        }),
       })
 
       if (!response.ok) {
@@ -125,7 +122,7 @@ Remember: This is a creativity competition, so focus on innovative and unique ap
     } else {
       throw createError({
         statusCode: 400,
-        statusMessage: 'AI provider not available or configured'
+        statusMessage: 'AI provider not available or configured',
       })
     }
 
@@ -133,11 +130,11 @@ Remember: This is a creativity competition, so focus on innovative and unique ap
     const updatedChatHistory = [
       ...(submission.chatHistory as any[]),
       { role: 'user', content: message, timestamp: new Date().toISOString() },
-      { role: 'assistant', content: aiResponse, timestamp: new Date().toISOString(), provider }
+      { role: 'assistant', content: aiResponse, timestamp: new Date().toISOString(), provider },
     ]
 
     await submission.update({
-      chatHistory: updatedChatHistory
+      chatHistory: updatedChatHistory,
     })
 
     await sequelize.close()
@@ -146,14 +143,14 @@ Remember: This is a creativity competition, so focus on innovative and unique ap
       success: true,
       response: aiResponse,
       provider,
-      chatHistory: updatedChatHistory
+      chatHistory: updatedChatHistory,
     }
   } catch (error: unknown) {
     if (error && typeof error === 'object' && 'statusCode' in error) throw error
-    
+
     throw createError({
       statusCode: 500,
-      statusMessage: error instanceof Error ? error.message : 'Failed to process AI chat'
+      statusMessage: error instanceof Error ? error.message : 'Failed to process AI chat',
     })
   }
 })
