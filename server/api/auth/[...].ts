@@ -40,12 +40,13 @@ export default NuxtAuthHandler({
             return null
           }
 
-          console.log('✅ User found, returning:', user.name)
+          console.log('✅ User found, returning:', user.name, '(Admin:', user.isAdmin, ')')
           return {
             id: user.id.toString(),
             email: user.email,
             name: user.name,
             image: user.picture,
+            isAdmin: user.isAdmin,
           }
         } catch (error) {
           console.error('❌ Fake auth error:', error)
@@ -61,6 +62,7 @@ export default NuxtAuthHandler({
         token.email = user.email
         token.name = user.name
         token.image = user.image
+        token.isAdmin = (user as any).isAdmin
       }
       return token
     },
@@ -70,6 +72,7 @@ export default NuxtAuthHandler({
         session.user.email = token.email as string
         session.user.name = token.name as string
         session.user.image = token.image as string
+        ;(session.user as any).isAdmin = token.isAdmin as boolean
       }
       return session
     }

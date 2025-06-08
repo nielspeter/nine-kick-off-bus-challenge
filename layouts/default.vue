@@ -210,36 +210,11 @@
 const showMobileMenu = ref(false)
 const { data: session, signOut } = useAuth()
 const user = computed(() => session.value?.user)
-const userIsAdmin = ref(false)
 
-// Check if current user is admin
-async function checkUserAdmin() {
-  const currentUser = user.value as { id?: string } | undefined
-  if (!currentUser?.id) {
-    userIsAdmin.value = false
-    return
-  }
-
-  try {
-    const userResponse = await $fetch(`/api/users/${currentUser.id}`) as {
-      success: boolean
-      user?: { isAdmin: boolean }
-    }
-    userIsAdmin.value = userResponse.success && userResponse.user?.isAdmin === true
-  } catch (error) {
-    console.error('Failed to check admin status:', error)
-    userIsAdmin.value = false
-  }
-}
-
-// Watch for user changes to check admin status
-watch(user, async (newUser) => {
-  if (newUser) {
-    await checkUserAdmin()
-  } else {
-    userIsAdmin.value = false
-  }
-}, { immediate: true })
+// Get isAdmin directly from session
+const userIsAdmin = computed(() => {
+  return (user.value as any)?.isAdmin === true
+})
 
 // Close mobile menu when route changes
 const route = useRoute()

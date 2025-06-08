@@ -173,54 +173,39 @@ definePageMeta({
 
 // Check admin access on component mount
 const { data: session, status } = useAuth()
-const isAdmin = ref(false)
 const loading = ref(true)
 const activeTab = ref('teams')
 
-// Check if current user is admin
-async function checkAdminAccess() {
+// Get isAdmin directly from session
+const isAdmin = computed(() => {
+  return (session.value?.user as any)?.isAdmin === true
+})
+
+// Check admin access
+function checkAdminAccess() {
   if (status.value === 'loading') {
-    // Wait for auth to load
     return
   }
   
   if (status.value === 'unauthenticated') {
-    await navigateTo('/auth/signin')
-    return
-  }
-
-  const user = session.value?.user as { id?: string }
-  if (!user?.id) {
     throw createError({
       statusCode: 401,
-      statusMessage: 'User session invalid'
+      statusMessage: 'Authentication required'
     })
   }
 
-  try {
-    const userResponse = await $fetch(`/api/users/${user.id}`) as {
-      success: boolean
-      user?: { isAdmin: boolean }
-    }
-    
-    if (!userResponse.success || !userResponse.user?.isAdmin) {
-      throw createError({
-        statusCode: 403,
-        statusMessage: 'Access denied. Admin privileges required.'
-      })
-    }
-    
-    isAdmin.value = true
-  } catch (error) {
-    console.error('Admin access check failed:', error)
-    throw error
+  if (!isAdmin.value) {
+    throw createError({
+      statusCode: 403,
+      statusMessage: 'Access denied. Admin privileges required.'
+    })
   }
 }
 
 // Watch for auth status changes
-watch(status, async (newStatus) => {
-  if (newStatus !== 'loading') {
-    await checkAdminAccess()
+watch([status, isAdmin], () => {
+  if (status.value !== 'loading') {
+    checkAdminAccess()
   }
 }, { immediate: true })
 

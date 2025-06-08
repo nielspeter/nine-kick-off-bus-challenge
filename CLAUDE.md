@@ -127,7 +127,7 @@ The application uses **@sidebase/nuxt-auth** with dual authentication modes:
 
 ### Technical Implementation
 - **Handler**: `~/server/api/auth/[...].ts` - NextAuth.js configuration
-- **Session Management**: JWT tokens with 30-day expiration
+- **Session Management**: JWT tokens with 30-day expiration including `isAdmin` field
 - **Frontend Integration**: `useAuth()` composable for session access
 - **Middleware**: `~/middleware/auth.ts` protects routes (currently disabled globally)
 
@@ -144,7 +144,42 @@ The application implements admin-only access using the recommended patterns from
 
 ### Implementation Pattern
 
-#### 1. Page-Level Protection (`pages/admin/index.vue`)
+#### 1. NextAuth.js Session Configuration (`server/api/auth/[...].ts`)
+```typescript
+export default NuxtAuthHandler({
+  providers: [
+    {
+      id: 'fake-auth',
+      async authorize(credentials) {
+        const user = await User.findByPk(credentials.userId)
+        return {
+          id: user.id.toString(),
+          email: user.email,
+          name: user.name,
+          image: user.picture,
+          isAdmin: user.isAdmin,  // Include admin status in auth response
+        }
+      }
+    }
+  ],
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.isAdmin = user.isAdmin  // Add to JWT token
+      }
+      return token
+    },
+    async session({ session, token }) {
+      if (token && session.user) {
+        session.user.isAdmin = token.isAdmin  // Add to session
+      }
+      return session
+    }
+  }
+})
+```
+
+#### 2. Page-Level Protection (`pages/admin/index.vue`)
 ```vue
 <script setup>
 // Protect page - redirect unauthenticated users to signin
@@ -154,49 +189,21 @@ definePageMeta({
   }
 })
 
-// Check admin access on component level
+// Get isAdmin directly from session - no API calls needed!
 const { data: session, status } = useAuth()
-const isAdmin = ref(false)
+const isAdmin = computed(() => session.value?.user?.isAdmin === true)
 
-async function checkAdminAccess() {
+function checkAdminAccess() {
   if (status.value === 'unauthenticated') {
-    await navigateTo('/auth/signin')
-    return
+    throw createError({ statusCode: 401, statusMessage: 'Authentication required' })
   }
-
-  const user = session.value?.user
-  const userResponse = await $fetch(`/api/users/${user.id}`)
-  
-  if (!userResponse.success || !userResponse.user?.isAdmin) {
-    throw createError({
-      statusCode: 403,
-      statusMessage: 'Access denied. Admin privileges required.'
-    })
+  if (!isAdmin.value) {
+    throw createError({ statusCode: 403, statusMessage: 'Access denied. Admin privileges required.' })
   }
-  
-  isAdmin.value = true
 }
 
-watch(status, checkAdminAccess, { immediate: true })
+watch([status, isAdmin], checkAdminAccess, { immediate: true })
 </script>
-```
-
-#### 2. API Endpoint for User Details (`server/api/users/[id].get.ts`)
-```typescript
-export default defineEventHandler(async (event) => {
-  const userId = getRouterParam(event, 'id')
-  // ... fetch user from database
-  
-  return {
-    success: true,
-    user: {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      isAdmin: user.isAdmin  // Key field for admin access
-    }
-  }
-})
 ```
 
 #### 3. Navigation Menu Control (`layouts/default.vue`)
@@ -212,17 +219,11 @@ export default defineEventHandler(async (event) => {
 </template>
 
 <script setup>
-const userIsAdmin = ref(false)
+const { data: session } = useAuth()
+const user = computed(() => session.value?.user)
 
-async function checkUserAdmin() {
-  const currentUser = user.value
-  if (!currentUser?.id) return
-  
-  const userResponse = await $fetch(`/api/users/${currentUser.id}`)
-  userIsAdmin.value = userResponse.success && userResponse.user?.isAdmin === true
-}
-
-watch(user, checkUserAdmin, { immediate: true })
+// Get isAdmin directly from session - no API calls needed!
+const userIsAdmin = computed(() => user.value?.isAdmin === true)
 </script>
 ```
 
@@ -234,7 +235,25 @@ watch(user, checkUserAdmin, { immediate: true })
 
 ### Why This Approach?
 - **Follows @sidebase/nuxt-auth best practices** from official documentation
-- **Avoids complex custom middleware** that can cause unexpected behavior
+- **Efficient**: No additional API calls needed - admin status is in the session
+- **Secure**: Admin status is set during authentication and stored in JWT
 - **Separation of concerns**: Authentication vs Authorization
 - **Progressive enhancement**: Works with SSR and client-side navigation
 - **Error boundary protection**: Clear error messages for unauthorized access
+
+### Session Structure
+After authentication, the session endpoint (`/api/auth/session`) returns:
+```json
+{
+  "user": {
+    "id": "user_nps",
+    "name": "Mikkel Gybel Lindgren",
+    "email": "nps@nine.dk", 
+    "image": null,
+    "isAdmin": false
+  },
+  "expires": "2025-07-08T14:50:09.278Z"
+}
+```
+
+This makes admin checking as simple as: `session.value?.user?.isAdmin === true`
