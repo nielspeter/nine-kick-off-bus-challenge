@@ -1,3 +1,5 @@
+import { getDatabase } from '~/server/utils/db'
+
 export default defineEventHandler(async (event) => {
   try {
     const body = await readBody(event)
@@ -10,17 +12,16 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    const config = useRuntimeConfig()
-    const { Sequelize } = await import('sequelize')
-    const { initModels } = await import('~/server/models')
-    
-    const sequelize = new Sequelize(config.databaseUrl, { logging: false })
-    const { Team, Task, Submission } = initModels(sequelize)
+    const sequelize = await getDatabase()
 
     // Verify team exists
-    const team = await Team.findByPk(teamId)
-    if (!team) {
-      await sequelize.close()
+    const [teamCheck] = await sequelize.query(`
+      SELECT id, name FROM "Teams" WHERE id = :teamId
+    `, {
+      replacements: { teamId }
+    })
+
+    if (!teamCheck || (teamCheck as any[]).length === 0) {
       throw createError({
         statusCode: 404,
         statusMessage: 'Team not found'
@@ -28,9 +29,14 @@ export default defineEventHandler(async (event) => {
     }
 
     // Verify task exists
-    const task = await Task.findByPk(taskId)
-    if (!task) {
-      await sequelize.close()
+    const [taskCheck] = await sequelize.query(`
+      SELECT id, title, category, description, "estimatedTime", difficulty 
+      FROM "Tasks" WHERE id = :taskId
+    `, {
+      replacements: { taskId }
+    })
+
+    if (!taskCheck || (taskCheck as any[]).length === 0) {
       throw createError({
         statusCode: 404,
         statusMessage: 'Task not found'
@@ -38,34 +44,45 @@ export default defineEventHandler(async (event) => {
     }
 
     // Check if team already has an active submission for this task
-    const existingSubmission = await Submission.findOne({
-      where: {
-        teamId,
-        taskId,
-        status: 'in_progress'
-      }
+    const [existingSubmission] = await sequelize.query(`
+      SELECT * FROM "Submissions" 
+      WHERE "teamId" = :teamId AND "taskId" = :taskId AND status = 'in_progress'
+    `, {
+      replacements: { teamId, taskId }
     })
 
-    if (existingSubmission) {
-      await sequelize.close()
+    if (existingSubmission && (existingSubmission as any[]).length > 0) {
       return {
         success: true,
-        submission: existingSubmission,
+        submission: (existingSubmission as any[])[0],
         message: 'Task already in progress'
       }
     }
 
-    // Check if team has completed this task
-    const completedSubmission = await Submission.findOne({
-      where: {
-        teamId,
-        taskId,
-        status: 'completed'
-      }
+    // Check if team has any other active challenge (only one challenge at a time)
+    const [activeChallenge] = await sequelize.query(`
+      SELECT * FROM "Submissions" 
+      WHERE "teamId" = :teamId AND status = 'in_progress'
+    `, {
+      replacements: { teamId }
     })
 
-    if (completedSubmission) {
-      await sequelize.close()
+    if (activeChallenge && (activeChallenge as any[]).length > 0) {
+      throw createError({
+        statusCode: 400,
+        statusMessage: 'Team already has an active challenge. Complete or forfeit the current challenge before starting a new one.'
+      })
+    }
+
+    // Check if team has completed this task
+    const [completedSubmission] = await sequelize.query(`
+      SELECT * FROM "Submissions" 
+      WHERE "teamId" = :teamId AND "taskId" = :taskId AND status = 'completed'
+    `, {
+      replacements: { teamId, taskId }
+    })
+
+    if (completedSubmission && (completedSubmission as any[]).length > 0) {
       throw createError({
         statusCode: 400,
         statusMessage: 'Task already completed by this team'
@@ -73,35 +90,39 @@ export default defineEventHandler(async (event) => {
     }
 
     // Create new submission
-    const submission = await Submission.create({
-      teamId,
-      taskId,
-      status: 'in_progress',
-      chatHistory: [],
-      finalAnswers: []
+    const submissionId = crypto.randomUUID()
+    await sequelize.query(`
+      INSERT INTO "Submissions" (id, "teamId", "taskId", status, "chatHistory", "finalAnswers", "createdAt", "updatedAt")
+      VALUES (:id, :teamId, :taskId, 'in_progress', '[]', '[]', NOW(), NOW())
+    `, {
+      replacements: { 
+        id: submissionId,
+        teamId, 
+        taskId 
+      }
     })
 
     // Fetch submission with task and team details
-    const submissionWithDetails = await Submission.findByPk(submission.id, {
-      include: [
-        {
-          model: Task,
-          as: 'task',
-          attributes: ['id', 'title', 'category', 'description', 'estimatedTime', 'difficulty']
-        },
-        {
-          model: Team,
-          as: 'team',
-          attributes: ['id', 'name']
-        }
-      ]
+    const [submissionDetails] = await sequelize.query(`
+      SELECT 
+        s.*,
+        t.title as task_title,
+        t.category as task_category,
+        t.description as task_description,
+        t."estimatedTime" as task_estimated_time,
+        t.difficulty as task_difficulty,
+        team.name as team_name
+      FROM "Submissions" s
+      JOIN "Tasks" t ON s."taskId" = t.id
+      JOIN "Teams" team ON s."teamId" = team.id
+      WHERE s.id = :submissionId
+    `, {
+      replacements: { submissionId }
     })
-
-    await sequelize.close()
 
     return {
       success: true,
-      submission: submissionWithDetails,
+      submission: (submissionDetails as any[])[0],
       message: 'Challenge started successfully'
     }
   } catch (error: any) {

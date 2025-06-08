@@ -1,14 +1,19 @@
 import type { Sequelize } from 'sequelize'
-import { User, Team, Task, Submission } from '../models'
 
-export async function useSequelize(): Promise<Sequelize> {
+let sequelizeInstance: Sequelize | null = null
+
+export async function getDatabase(): Promise<Sequelize> {
+  if (sequelizeInstance) {
+    return sequelizeInstance
+  }
+
   const config = useRuntimeConfig()
   if (!config.databaseUrl) {
     throw new Error('DATABASE_URL not configured')
   }
   
   const { Sequelize } = await import('sequelize')
-  return new Sequelize(config.databaseUrl, {
+  sequelizeInstance = new Sequelize(config.databaseUrl, {
     logging: false,
     dialectOptions: {
       ssl: process.env.NODE_ENV === 'production' ? {
@@ -17,13 +22,10 @@ export async function useSequelize(): Promise<Sequelize> {
       } : false
     }
   })
-}
 
-export function useModels() {
-  return {
-    User,
-    Team,
-    Task,
-    Submission
-  }
+  // Test the connection
+  await sequelizeInstance.authenticate()
+  console.log('✅ Database singleton connection established')
+  
+  return sequelizeInstance
 }

@@ -1,17 +1,26 @@
-import { useModels } from '~/server/utils/db'
+import { getDatabase } from '~/server/utils/db'
 
 export default defineEventHandler(async (_event) => {
   try {
-    const { Task } = useModels()
+    const sequelize = await getDatabase()
     
-    const tasks = await Task.findAll({
-      attributes: ['id', 'title', 'category', 'description', 'estimatedTime', 'difficulty', 'createdAt'],
-      order: [['category', 'ASC'], ['title', 'ASC']]
-    })
+    // Get all tasks using raw SQL
+    const [results] = await sequelize.query(`
+      SELECT 
+        id,
+        title,
+        category,
+        description,
+        "estimatedTime",
+        difficulty,
+        "createdAt"
+      FROM "Tasks"
+      ORDER BY category ASC, title ASC
+    `)
 
     return {
       success: true,
-      data: tasks
+      data: results
     }
   } catch (error) {
     console.error('Error fetching tasks:', error)

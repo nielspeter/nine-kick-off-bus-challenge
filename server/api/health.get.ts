@@ -1,3 +1,5 @@
+import { getDatabase } from '~/server/utils/db'
+
 export default defineEventHandler(async (event) => {
   const checks = {
     app: true,
@@ -10,9 +12,9 @@ export default defineEventHandler(async (event) => {
     // Check database connection if configured
     const config = useRuntimeConfig()
     if (config.databaseUrl) {
-      const sequelize = await useSequelize()
+      const sequelize = await getDatabase()
       await sequelize.authenticate()
-      await sequelize.close() // Close the connection after testing
+      // Don't close the singleton connection
       checks.database = true
     }
   } catch (error) {

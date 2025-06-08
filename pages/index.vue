@@ -1,7 +1,7 @@
 <template>
   <div class="max-w-4xl mx-auto text-center p-4 md:p-6">
     <!-- Competition Timer -->
-    <div class="bg-gradient-to-r from-primary to-primary/80 text-white rounded-lg p-6 mb-8">
+    <div class="bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-lg p-6 mb-8">
       <div class="mb-4">
         <h2 class="text-2xl font-bold mb-2">🚌 Nine KickOff Bus Challenge</h2>
         <p class="opacity-90">{{ getStatusMessage() }}</p>
@@ -16,7 +16,7 @@
         <div 
           class="bg-white h-2 rounded-full transition-all duration-1000"
           :style="{ width: `${progress}%` }"
-        ></div>
+        />
       </div>
       
       <div class="text-sm opacity-75">
@@ -36,7 +36,7 @@
     <div class="py-8">
       <h1 class="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
         Nine KickOff
-        <span class="text-primary">Bus Challenge</span>
+        <span class="text-blue-600">Bus Challenge</span>
       </h1>
       <p class="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
         An AI creativity competition where teams compete by using AI to solve challenges 
@@ -51,13 +51,13 @@
         <div class="flex flex-col sm:flex-row gap-4 justify-center">
           <NuxtLink 
             to="/team" 
-            class="bg-primary text-white px-6 py-3 rounded-lg font-semibold hover:bg-primary/90 transition-colors"
+            class="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
           >
             Manage Team
           </NuxtLink>
           <NuxtLink 
             to="/tasks" 
-            class="bg-white text-primary border-2 border-primary px-6 py-3 rounded-lg font-semibold hover:bg-primary/5 transition-colors"
+            class="bg-white text-blue-600 border-2 border-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-blue-50 transition-colors"
           >
             View Challenges
           </NuxtLink>
@@ -74,7 +74,7 @@
     <!-- Features Section -->
     <div class="py-12 grid md:grid-cols-3 gap-8">
       <div class="bg-white p-6 rounded-lg shadow-sm border">
-        <Icon name="heroicons:users" class="w-12 h-12 text-primary mx-auto mb-4" />
+        <Icon name="heroicons:users" class="w-12 h-12 text-blue-600 mx-auto mb-4" />
         <h3 class="text-xl font-semibold mb-2">Team Formation</h3>
         <p class="text-gray-600">
           Self-organize into teams of 2-4 people and compete together
@@ -82,7 +82,7 @@
       </div>
       
       <div class="bg-white p-6 rounded-lg shadow-sm border">
-        <Icon name="heroicons:puzzle-piece" class="w-12 h-12 text-primary mx-auto mb-4" />
+        <Icon name="heroicons:puzzle-piece" class="w-12 h-12 text-blue-600 mx-auto mb-4" />
         <h3 class="text-xl font-semibold mb-2">AI Challenges</h3>
         <p class="text-gray-600">
           Solve creative challenges across 8 different professional domains
@@ -90,7 +90,7 @@
       </div>
       
       <div class="bg-white p-6 rounded-lg shadow-sm border">
-        <Icon name="heroicons:trophy" class="w-12 h-12 text-primary mx-auto mb-4" />
+        <Icon name="heroicons:trophy" class="w-12 h-12 text-blue-600 mx-auto mb-4" />
         <h3 class="text-xl font-semibold mb-2">Competition</h3>
         <p class="text-gray-600">
           Compete for creativity, innovation, and best use of AI

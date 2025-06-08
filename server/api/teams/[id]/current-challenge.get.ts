@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
 
     const sequelize = await getDatabase()
 
-    // Get all submissions for this team
+    // Get current active challenge for the team
     const [results] = await sequelize.query(`
       SELECT 
         s.*,
@@ -21,25 +21,30 @@ export default defineEventHandler(async (event) => {
         t.category as task_category,
         t.description as task_description,
         t."estimatedTime" as task_estimated_time,
-        t.difficulty as task_difficulty
+        t.difficulty as task_difficulty,
+        team.name as team_name
       FROM "Submissions" s
       JOIN "Tasks" t ON s."taskId" = t.id
-      WHERE s."teamId" = :teamId
+      JOIN "Teams" team ON s."teamId" = team.id
+      WHERE s."teamId" = :teamId AND s.status = 'in_progress'
       ORDER BY s."createdAt" DESC
+      LIMIT 1
     `, {
       replacements: { teamId }
     })
 
+    const activeChallenge = (results as any[])[0] || null
+
     return {
       success: true,
-      submissions: results || []
+      data: activeChallenge
     }
   } catch (error: any) {
     if (error.statusCode) throw error
     
     throw createError({
       statusCode: 500,
-      statusMessage: error.message || 'Failed to fetch team submissions'
+      statusMessage: error.message || 'Failed to get current challenge'
     })
   }
 })

@@ -41,6 +41,13 @@
               Leaderboard
             </NuxtLink>
             <NuxtLink 
+              to="/users" 
+              class="text-gray-700 hover:text-primary transition-colors"
+              :class="{ 'text-primary font-medium': $route.path.startsWith('/users') }"
+            >
+              Users
+            </NuxtLink>
+            <NuxtLink 
               to="/admin" 
               class="text-gray-700 hover:text-primary transition-colors"
               :class="{ 'text-primary font-medium': $route.path.startsWith('/admin') }"
@@ -99,6 +106,13 @@
               @click="showMobileMenu = false"
             >
               Leaderboard
+            </NuxtLink>
+            <NuxtLink 
+              to="/users" 
+              class="block px-3 py-2 text-gray-700 hover:text-primary hover:bg-gray-50 rounded-md"
+              @click="showMobileMenu = false"
+            >
+              Users
             </NuxtLink>
             <NuxtLink 
               to="/admin" 

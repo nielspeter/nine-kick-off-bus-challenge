@@ -15,7 +15,6 @@
     "db:seed": "node scripts/seed-database.js",
     "db:seed-api": "curl -X POST http://localhost:3000/api/seed",
     "fetch:nine-employees": "node scripts/generate-seed-sql.js",
-    "generate:seed-file": "node scripts/generate-seed-sql.js > database/seed.sql",
     "update:docker-seed": "mkdir -p init-db && node scripts/generate-seed-sql.js > init-db/001-seed.sql",
     "start:with-db": "scripts/start-with-db.sh",
     "dev:setup": "./scripts/dev-up.sh",

@@ -44,17 +44,17 @@
         <!-- Challenge Actions -->
         <div v-if="submission.status === 'in_progress'" class="flex flex-col sm:flex-row gap-3">
           <button
-            @click="submitChallenge"
+            @click="showSubmitModal = true"
             :disabled="!finalAnswer.trim()"
             class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50"
           >
             Submit Final Answer
           </button>
           <button
-            @click="showSubmitModal = false"
-            class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600"
+            @click="forfeitChallenge"
+            class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600"
           >
-            Save Progress
+            Forfeit Challenge
           </button>
         </div>
       </div>
@@ -123,10 +123,15 @@
 
         <!-- Chat Input -->
         <div class="border-t p-4">
-          <form @submit.prevent="sendMessage" class="flex flex-col sm:flex-row gap-2">
+          <div v-if="submission.status === 'completed'" class="text-center py-4 text-gray-500">
+            <Icon name="heroicons:chat-bubble-left-right" class="w-8 h-8 mx-auto mb-2" />
+            <p>Chat is disabled for completed challenges</p>
+          </div>
+          <form v-else @submit.prevent="sendMessage" class="flex flex-col sm:flex-row gap-2">
             <select 
               v-model="selectedProvider" 
               class="border rounded-lg px-3 py-2 bg-white"
+              :disabled="isTyping"
             >
               <option value="openai">GPT-4</option>
               <option value="claude">Claude</option>
@@ -296,6 +301,26 @@ async function submitChallenge() {
   } catch (error) {
     console.error('Failed to submit challenge:', error)
     alert('Failed to submit challenge: ' + error.message)
+  }
+}
+
+async function forfeitChallenge() {
+  if (!submission.value) return
+  
+  const confirmMessage = 'Are you sure you want to forfeit this challenge? This will allow you to start a new challenge, but your progress will be lost.'
+  if (!confirm(confirmMessage)) return
+  
+  try {
+    await $fetch(`/api/submissions/${submission.value.id}/forfeit`, {
+      method: 'POST'
+    })
+    
+    // Success notification and redirect
+    alert('Challenge forfeited successfully! You can now start a new challenge.')
+    await navigateTo('/tasks')
+  } catch (error) {
+    console.error('Failed to forfeit challenge:', error)
+    alert('Failed to forfeit challenge: ' + error.message)
   }
 }
 

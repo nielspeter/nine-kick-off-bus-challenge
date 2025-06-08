@@ -1,27 +1,33 @@
+import { getDatabase } from '~/server/utils/db'
+
 export default defineEventHandler(async () => {
   try {
-    const config = useRuntimeConfig()
-    const { Sequelize } = await import('sequelize')
-    const { initModels } = await import('~/server/models')
+    const sequelize = await getDatabase()
     
-    const sequelize = new Sequelize(config.databaseUrl, { logging: false })
-    const { Task } = initModels(sequelize)
+    // Get all tasks
+    const [results] = await sequelize.query(`
+      SELECT 
+        id,
+        title,
+        category,
+        description,
+        "estimatedTime",
+        difficulty,
+        "createdAt"
+      FROM "Tasks"
+      ORDER BY category ASC, difficulty ASC
+    `)
 
-    const tasks = await Task.findAll({
-      attributes: ['id', 'title', 'category', 'description', 'estimatedTime', 'difficulty'],
-      order: [['category', 'ASC'], ['difficulty', 'ASC']]
-    })
-
-    await sequelize.close()
-
+    const tasks = results as any[]
+    
     // Group tasks by category
-    const groupedTasks = tasks.reduce((acc, task) => {
-      if (!acc[task.category]) {
-        acc[task.category] = []
+    const groupedTasks: Record<string, any[]> = {}
+    tasks.forEach(task => {
+      if (!groupedTasks[task.category]) {
+        groupedTasks[task.category] = []
       }
-      acc[task.category].push(task)
-      return acc
-    }, {} as Record<string, any[]>)
+      groupedTasks[task.category].push(task)
+    })
 
     return {
       success: true,
@@ -29,6 +35,7 @@ export default defineEventHandler(async () => {
       groupedTasks
     }
   } catch (error: any) {
+    console.error('Error fetching challenges:', error)
     throw createError({
       statusCode: 500,
       statusMessage: error.message || 'Failed to fetch challenges'

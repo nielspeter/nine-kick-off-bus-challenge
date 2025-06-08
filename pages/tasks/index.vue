@@ -6,18 +6,18 @@
     </div>
 
     <!-- Team Status -->
-    <div v-if="userTeam" class="bg-white rounded-lg shadow-md p-4 md:p-6 mb-8">
+    <NuxtLink v-if="userTeam" to="/team" class="block bg-white rounded-lg shadow-md p-4 md:p-6 mb-8 hover:shadow-lg transition-shadow cursor-pointer">
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-0">
         <div>
           <h2 class="text-xl font-semibold">{{ userTeam.name }}</h2>
           <p class="text-gray-600">{{ userTeam.members?.length || 0 }} members</p>
         </div>
         <div class="text-left md:text-right">
-          <div class="text-2xl font-bold text-primary">{{ completedChallenges }}/{{ totalChallenges }}</div>
+          <div class="text-2xl font-bold text-blue-600">{{ completedChallenges }}/{{ totalChallenges }}</div>
           <div class="text-sm text-gray-600">Challenges Completed</div>
         </div>
       </div>
-    </div>
+    </NuxtLink>
 
     <!-- No Team Warning -->
     <div v-else class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 md:p-6 mb-8">
@@ -43,7 +43,7 @@
         :key="category"
         class="bg-white rounded-lg shadow-md overflow-hidden"
       >
-        <div class="bg-gradient-to-r from-primary to-primary/80 text-white p-4 md:p-6">
+        <div class="bg-gradient-to-r from-blue-600 to-blue-500 text-white p-4 md:p-6">
           <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-0">
             <div>
               <h2 class="text-2xl font-bold">{{ category }}</h2>
@@ -87,13 +87,21 @@
                 </div>
                 
                 <div class="ml-4">
-                  <button 
-                    v-if="getTaskStatus(task) === 'available'"
-                    @click="startChallenge(task)"
-                    class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90"
-                  >
-                    Start Challenge
-                  </button>
+                  <div v-if="getTaskStatus(task) === 'available'" class="text-right">
+                    <button 
+                      @click="startChallenge(task)"
+                      :disabled="!isTaskAvailable(task)"
+                      class="px-4 py-2 rounded-lg font-medium"
+                      :class="isTaskAvailable(task) 
+                        ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'"
+                    >
+                      Start Challenge
+                    </button>
+                    <div v-if="!isTaskAvailable(task)" class="text-xs text-gray-500 mt-1">
+                      Complete current challenge first
+                    </div>
+                  </div>
                   <button 
                     v-else-if="getTaskStatus(task) === 'in_progress'"
                     @click="continueChallenge(task)"
@@ -167,6 +175,18 @@ function getTaskStatus(task: any) {
   return submission.status
 }
 
+function hasActiveChallenge() {
+  return submissions.value.some(sub => sub.status === 'in_progress')
+}
+
+function isTaskAvailable(task: any) {
+  const taskStatus = getTaskStatus(task)
+  if (taskStatus === 'completed') return false
+  if (taskStatus === 'in_progress') return true
+  // Task is available only if team has no active challenges
+  return !hasActiveChallenge()
+}
+
 function getTaskStatusClass(task: any) {
   const status = getTaskStatus(task)
   if (status === 'completed') return 'border-green-200 bg-green-50'
@@ -175,9 +195,17 @@ function getTaskStatusClass(task: any) {
 }
 
 async function startChallenge(task: any) {
-  if (!userTeam.value) return
+  console.log('startChallenge called with task:', task)
+  console.log('userTeam.value:', userTeam.value)
+  
+  if (!userTeam.value) {
+    console.error('No user team found!')
+    alert('You need to be on a team to start challenges. Please go to the Team Management page.')
+    return
+  }
   
   try {
+    console.log('Starting challenge with teamId:', userTeam.value.id, 'taskId:', task.id)
     const response = await $fetch('/api/challenges/start', {
       method: 'POST',
       body: {
@@ -186,6 +214,7 @@ async function startChallenge(task: any) {
       }
     })
     
+    console.log('Challenge start response:', response)
     // Navigate to challenge interface
     await navigateTo(`/challenge/${response.submission.id}`)
   } catch (error) {
@@ -204,22 +233,32 @@ async function continueChallenge(task: any) {
 async function fetchData() {
   loading.value = true
   try {
+    console.log('Fetching data...')
+    
     // Fetch challenges
     const challengesResponse = await $fetch('/api/challenges')
+    console.log('Challenges response:', challengesResponse)
     tasks.value = challengesResponse.tasks
     groupedTasks.value = challengesResponse.groupedTasks
 
     // Fetch user's team
     const teamsResponse = await $fetch('/api/teams')
+    console.log('Teams response:', teamsResponse)
+    console.log('Looking for user with ID:', mockUser.id)
+    
     userTeam.value = teamsResponse.teams.find(team => 
       team.members?.find(member => member.id === mockUser.id)
     ) || null
+    
+    console.log('Found user team:', userTeam.value)
 
     // Fetch team's submissions if user has a team
     if (userTeam.value) {
       try {
+        console.log('Fetching submissions for team:', userTeam.value.id)
         const submissionsResponse = await $fetch(`/api/teams/${userTeam.value.id}/submissions`)
-        submissions.value = submissionsResponse.submissions || []
+        console.log('Submissions response:', submissionsResponse)
+        submissions.value = (submissionsResponse.success && submissionsResponse.submissions) ? submissionsResponse.submissions : []
       } catch (error) {
         console.error('Failed to fetch submissions:', error)
         submissions.value = []

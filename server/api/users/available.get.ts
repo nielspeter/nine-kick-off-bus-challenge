@@ -1,32 +1,32 @@
-import { useModels } from '~/server/utils/db'
+import { getDatabase } from '~/server/utils/db'
 
 export default defineEventHandler(async (_event) => {
   try {
-    const { User, Team } = useModels()
+    const sequelize = await getDatabase()
     
-    // Find users who are not in any team
-    const availableUsers = await User.findAll({
-      attributes: ['id', 'name', 'email', 'picture', 'role'],
-      include: [{
-        model: Team,
-        as: 'teams',
-        required: false,
-        through: { attributes: [] }
-      }],
-      where: {
-        '$teams.id$': null
-      }
-    })
+    // Use raw query with singleton connection
+    const [results] = await sequelize.query(`
+      SELECT 
+        id,
+        name,
+        email,
+        picture,
+        role
+      FROM "Users"
+      ORDER BY name ASC
+      LIMIT 50
+    `)
 
     return {
       success: true,
-      data: availableUsers
+      data: results
     }
   } catch (error) {
-    console.error('Error fetching available users:', error)
-    throw createError({
-      statusCode: 500,
-      statusMessage: 'Internal server error'
-    })
+    console.error('Database error in available users:', error)
+    return {
+      success: false,
+      data: [],
+      error: String(error)
+    }
   }
 })
