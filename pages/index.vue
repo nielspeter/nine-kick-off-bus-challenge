@@ -6,19 +6,19 @@
         <h2 class="text-2xl font-bold mb-2">🚌 Nine KickOff Bus Challenge</h2>
         <p class="opacity-90">{{ getStatusMessage() }}</p>
       </div>
-      
+
       <div class="text-4xl font-mono font-bold mb-4" :class="getStatusColor()">
         {{ timeLeft }}
       </div>
-      
+
       <!-- Progress Bar -->
       <div v-if="competitionStatus === 'active'" class="w-full bg-white/20 rounded-full h-2 mb-4">
-        <div 
+        <div
           class="bg-white h-2 rounded-full transition-all duration-1000"
           :style="{ width: `${progress}%` }"
         />
       </div>
-      
+
       <div class="text-sm opacity-75">
         <div v-if="competitionStatus === 'upcoming'">
           Get ready for an exciting AI creativity journey!
@@ -39,30 +39,30 @@
         <span class="text-blue-600">Bus Challenge</span>
       </h1>
       <p class="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-        An AI creativity competition where teams compete by using AI to solve challenges 
+        An AI creativity competition where teams compete by using AI to solve challenges
         across different professional domains during the bus trip.
       </p>
-      
+
       <!-- Quick Actions -->
       <div class="space-y-4">
         <h2 class="text-2xl font-semibold text-gray-800 mb-4">
           Ready to compete?
         </h2>
         <div class="flex flex-col sm:flex-row gap-4 justify-center">
-          <NuxtLink 
-            to="/team" 
+          <NuxtLink
+            to="/team"
             class="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
           >
             Manage Team
           </NuxtLink>
-          <NuxtLink 
-            to="/tasks" 
+          <NuxtLink
+            to="/tasks"
             class="bg-white text-blue-600 border-2 border-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-blue-50 transition-colors"
           >
             View Challenges
           </NuxtLink>
-          <NuxtLink 
-            to="/leaderboard" 
+          <NuxtLink
+            to="/leaderboard"
             class="bg-gray-100 text-gray-700 px-6 py-3 rounded-lg font-semibold hover:bg-gray-200 transition-colors"
           >
             Leaderboard
@@ -80,7 +80,7 @@
           Self-organize into teams of 2-4 people and compete together
         </p>
       </div>
-      
+
       <div class="bg-white p-6 rounded-lg shadow-sm border">
         <Icon name="heroicons:puzzle-piece" class="w-12 h-12 text-blue-600 mx-auto mb-4" />
         <h3 class="text-xl font-semibold mb-2">AI Challenges</h3>
@@ -88,7 +88,7 @@
           Solve creative challenges across 8 different professional domains
         </p>
       </div>
-      
+
       <div class="bg-white p-6 rounded-lg shadow-sm border">
         <Icon name="heroicons:trophy" class="w-12 h-12 text-blue-600 mx-auto mb-4" />
         <h3 class="text-xl font-semibold mb-2">Competition</h3>
@@ -113,13 +113,15 @@
 
 <script setup lang="ts">
 // Competition timer
-const { 
-  timeLeft, 
-  competitionStatus, 
-  progress, 
-  startTimer, 
-  getStatusMessage, 
-  getStatusColor 
+import {useCompetitionTimer} from "~/composables/useCompetitionTimer";
+
+const {
+  timeLeft,
+  competitionStatus,
+  progress,
+  startTimer,
+  getStatusMessage,
+  getStatusColor
 } = useCompetitionTimer()
 
 const categories = [

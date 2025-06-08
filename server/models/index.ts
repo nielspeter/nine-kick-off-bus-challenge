@@ -62,6 +62,7 @@ export class Submission extends Model<InferAttributes<Submission>, InferCreation
   declare readonly updatedAt: CreationOptional<Date>
 }
 
+
 export function initModels(sequelize: Sequelize) {
   // Initialize User model
   User.init({
@@ -194,6 +195,7 @@ export function initModels(sequelize: Sequelize) {
     sequelize,
     modelName: 'Submission'
   })
+
 
   // Define associations
   Team.belongsToMany(User, { through: 'TeamMembers', as: 'members' })

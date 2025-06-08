@@ -36,6 +36,19 @@
       </NuxtLink>
     </div>
 
+    <!-- Competition Status Warning -->
+    <div v-if="userTeam && !canStartChallenges" class="bg-orange-50 border border-orange-200 rounded-lg p-4 md:p-6 mb-8">
+      <div class="flex items-center gap-3">
+        <Icon name="heroicons:clock" class="w-6 h-6 text-orange-600" />
+        <div>
+          <h3 class="font-semibold text-orange-800">
+            {{ competitionStatusMessage.title }}
+          </h3>
+          <p class="text-orange-700">{{ competitionStatusMessage.description }}</p>
+        </div>
+      </div>
+    </div>
+
     <!-- Challenge Categories -->
     <div v-if="userTeam" class="grid gap-8">
       <div 
@@ -89,23 +102,23 @@
                 <div class="ml-4">
                   <div v-if="getTaskStatus(task) === 'available'" class="text-right">
                     <button 
-                      @click="startChallenge(task)"
                       :disabled="!isTaskAvailable(task)"
                       class="px-4 py-2 rounded-lg font-medium"
                       :class="isTaskAvailable(task) 
                         ? 'bg-blue-600 text-white hover:bg-blue-700' 
                         : 'bg-gray-300 text-gray-500 cursor-not-allowed'"
+                      @click="startChallenge(task)"
                     >
                       Start Challenge
                     </button>
-                    <div v-if="!isTaskAvailable(task)" class="text-xs text-gray-500 mt-1">
+                    <div v-if="!isTaskAvailable(task) && canStartChallenges && hasActiveChallenge()" class="text-xs text-gray-500 mt-1">
                       Complete current challenge first
                     </div>
                   </div>
                   <button 
                     v-else-if="getTaskStatus(task) === 'in_progress'"
-                    @click="continueChallenge(task)"
                     class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                    @click="continueChallenge(task)"
                   >
                     Continue
                   </button>
@@ -125,13 +138,15 @@
 
     <!-- Loading State -->
     <div v-if="loading" class="text-center py-12">
-      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"/>
       <p class="mt-4 text-gray-600">Loading challenges...</p>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { useCompetitionTimer } from '~/composables/useCompetitionTimer'
+
 // Mock user for testing
 const mockUser = {
   id: 'user_anv',
@@ -145,10 +160,68 @@ const groupedTasks = ref({})
 const userTeam = ref(null)
 const submissions = ref([])
 
+// Get competition state
+const { competitionStatus, competitionState, startTimer } = useCompetitionTimer()
+
 const totalChallenges = computed(() => tasks.value.length)
 const completedChallenges = computed(() => 
   submissions.value.filter(sub => sub.status === 'completed').length
 )
+
+// Competition state checks
+const canStartChallenges = computed(() => {
+  if (!competitionState.value) return false
+  if (!competitionState.value.isStarted) return false
+  if (competitionState.value.isPaused) return false
+  
+  // Check if competition has ended
+  if (competitionState.value.endTime) {
+    const now = new Date()
+    const endTime = new Date(competitionState.value.endTime)
+    if (now > endTime) return false
+  }
+  
+  return true
+})
+
+const competitionStatusMessage = computed(() => {
+  if (!competitionState.value) {
+    return {
+      title: 'Loading competition status...',
+      description: 'Please wait while we check the competition status.'
+    }
+  }
+  
+  if (!competitionState.value.isStarted) {
+    return {
+      title: 'Competition Not Started',
+      description: 'The competition has not started yet. Please wait for an admin to start the competition.'
+    }
+  }
+  
+  if (competitionState.value.isPaused) {
+    return {
+      title: 'Competition Paused',
+      description: 'The competition is currently paused. Please wait for it to resume.'
+    }
+  }
+  
+  if (competitionState.value.endTime) {
+    const now = new Date()
+    const endTime = new Date(competitionState.value.endTime)
+    if (now > endTime) {
+      return {
+        title: 'Competition Ended',
+        description: 'The competition has ended. No new challenges can be started.'
+      }
+    }
+  }
+  
+  return {
+    title: '',
+    description: ''
+  }
+})
 
 function getCategoryIcon(category: string) {
   const icons = {
@@ -180,6 +253,9 @@ function hasActiveChallenge() {
 }
 
 function isTaskAvailable(task: any) {
+  // First check if competition allows starting challenges
+  if (!canStartChallenges.value) return false
+  
   const taskStatus = getTaskStatus(task)
   if (taskStatus === 'completed') return false
   if (taskStatus === 'in_progress') return true
@@ -271,6 +347,7 @@ async function fetchData() {
 }
 
 onMounted(() => {
+  startTimer() // Start the competition timer
   fetchData()
 })
 </script>

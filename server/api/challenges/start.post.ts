@@ -1,4 +1,5 @@
 import { getDatabase } from '~/server/utils/db'
+import { getCompetitionState } from '~/server/utils/competitionState'
 
 export default defineEventHandler(async (event) => {
   try {
@@ -9,6 +10,31 @@ export default defineEventHandler(async (event) => {
       throw createError({
         statusCode: 400,
         statusMessage: 'Team ID and task ID are required'
+      })
+    }
+
+    // Check competition state
+    const competitionState = getCompetitionState()
+    
+    if (!competitionState.isStarted) {
+      throw createError({
+        statusCode: 403,
+        statusMessage: 'Competition has not started yet. Please wait for the competition to begin.'
+      })
+    }
+    
+    if (competitionState.isPaused) {
+      throw createError({
+        statusCode: 403,
+        statusMessage: 'Competition is currently paused. Please wait for it to resume.'
+      })
+    }
+    
+    // Check if competition has ended
+    if (competitionState.endTime && new Date() > new Date(competitionState.endTime)) {
+      throw createError({
+        statusCode: 403,
+        statusMessage: 'Competition has ended. No new challenges can be started.'
       })
     }
 

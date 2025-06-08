@@ -29,15 +29,132 @@
           <button
             v-for="tab in tabs"
             :key="tab.id"
-            @click="activeTab = tab.id"
             class="px-6 py-3 text-sm font-medium border-b-2 transition-colors"
             :class="activeTab === tab.id 
               ? 'border-primary text-primary' 
               : 'border-transparent text-gray-500 hover:text-gray-700'"
+            @click="activeTab = tab.id"
           >
             {{ tab.label }}
           </button>
         </nav>
+      </div>
+
+      <!-- Competition Settings Tab -->
+      <div v-if="activeTab === 'settings'" class="p-4 md:p-6">
+        <h2 class="text-xl font-semibold mb-4">Competition Control Center</h2>
+        
+        <!-- Competition Status Card -->
+        <div class="bg-white rounded-lg border p-6 mb-6">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold">Competition Status</h3>
+            <div class="flex items-center gap-2">
+              <div
+:class="[
+                'w-3 h-3 rounded-full',
+                competitionState?.isStarted ? 'bg-green-500' : 'bg-gray-400'
+              ]"/>
+              <span class="text-sm font-medium">
+                {{ competitionState?.isStarted ? (competitionState?.isPaused ? 'Paused' : 'Active') : 'Not Started' }}
+              </span>
+            </div>
+          </div>
+          
+          <div v-if="competitionState?.isStarted" class="space-y-2 text-sm text-gray-600 mb-4">
+            <p>Started: {{ formatDateTime(competitionState.startTime) }}</p>
+            <p>Ends: {{ formatDateTime(competitionState.endTime) }}</p>
+            <p v-if="competitionState.isPaused" class="text-orange-600 font-medium">
+              Competition is currently paused
+            </p>
+          </div>
+          
+          <!-- Control Buttons -->
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <button
+              v-if="!competitionState?.isStarted"
+              :disabled="controlLoading"
+              class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 disabled:opacity-50 font-medium"
+              @click="startCompetition"
+            >
+              Start Competition
+            </button>
+            
+            <button
+              v-if="competitionState?.isStarted && !competitionState?.isPaused"
+              :disabled="controlLoading"
+              class="bg-orange-600 text-white px-4 py-2 rounded-md hover:bg-orange-700 disabled:opacity-50 font-medium"
+              @click="pauseCompetition"
+            >
+              Pause
+            </button>
+            
+            <button
+              v-if="competitionState?.isStarted && competitionState?.isPaused"
+              :disabled="controlLoading"
+              class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 font-medium"
+              @click="resumeCompetition"
+            >
+              Resume
+            </button>
+            
+            <button
+              v-if="competitionState?.isStarted"
+              :disabled="controlLoading"
+              class="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 disabled:opacity-50 font-medium"
+              @click="stopCompetition"
+            >
+              Stop & Reset
+            </button>
+          </div>
+        </div>
+        
+        <!-- Duration Settings -->
+        <div class="bg-white rounded-lg border p-6">
+          <h3 class="text-lg font-semibold mb-4">Competition Duration</h3>
+          <div class="max-w-md">
+            <div class="flex items-end gap-3">
+              <div class="flex-1">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                  Duration (minutes)
+                </label>
+                <input
+                  v-model.number="competitionDurationMinutes"
+                  type="number"
+                  min="1"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                <p class="mt-1 text-sm text-gray-500">
+                  {{ Math.floor(competitionDurationMinutes / 60) }} hours 
+                  {{ competitionDurationMinutes % 60 }} minutes
+                </p>
+              </div>
+              <button
+                :disabled="controlLoading || competitionState?.durationMinutes === competitionDurationMinutes"
+                class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 disabled:opacity-50"
+                @click="updateDuration"
+              >
+                Update
+              </button>
+            </div>
+            <p v-if="!competitionState?.isStarted" class="mt-3 text-sm text-gray-500">
+              Duration will be applied when competition starts
+            </p>
+            <p v-else class="mt-3 text-sm text-orange-600">
+              Note: Changing duration while competition is active will adjust the end time
+            </p>
+          </div>
+        </div>
+        
+        <div v-if="settingsMessage" class="mt-4">
+          <div 
+            :class="[
+              'p-3 rounded-md',
+              settingsMessageType === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+            ]"
+          >
+            {{ settingsMessage }}
+          </div>
+        </div>
       </div>
 
       <!-- Teams Tab -->
@@ -72,8 +189,8 @@
                 </td>
                 <td class="py-3">
                   <button 
-                    @click="viewTeamDetails(team)"
                     class="text-primary hover:text-primary/80 text-sm"
+                    @click="viewTeamDetails(team)"
                   >
                     View Details
                   </button>
@@ -106,8 +223,8 @@
                   {{ submission.task?.category }}
                 </span>
                 <button 
-                  @click="reviewSubmission(submission)"
                   class="bg-primary text-white px-3 py-1 rounded text-sm hover:bg-primary/90"
+                  @click="reviewSubmission(submission)"
                 >
                   Review
                 </button>
@@ -157,7 +274,7 @@
 
     <!-- Loading State -->
     <div v-if="loading" class="text-center py-12">
-      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"/>
       <p v-if="loadingAuth" class="mt-4 text-gray-600">Checking authentication...</p>
       <p v-else class="mt-4 text-gray-600">Loading admin data...</p>
     </div>
@@ -175,7 +292,14 @@ definePageMeta({
 // Check admin access on component mount
 const { data: session, status } = useAuth()
 const loadingAdminData = ref(false)
-const activeTab = ref('teams')
+const activeTab = ref('settings')
+
+// Competition settings state
+const competitionState = ref<any>(null)
+const competitionDurationMinutes = ref(240) // Default 4 hours
+const controlLoading = ref(false)
+const settingsMessage = ref('')
+const settingsMessageType = ref<'success' | 'error'>('success')
 
 // Get isAdmin directly from session
 const isAdmin = computed(() => {
@@ -230,6 +354,7 @@ const stats = ref({
 })
 
 const tabs = [
+  { id: 'settings', label: 'Competition Settings' },
   { id: 'teams', label: 'Teams' },
   { id: 'submissions', label: 'Submissions' },
   { id: 'leaderboard', label: 'Leaderboard' }
@@ -274,6 +399,120 @@ function reviewSubmission(submission: any) {
   console.log('Review submission:', submission)
 }
 
+// Competition control functions
+async function loadCompetitionState() {
+  try {
+    competitionState.value = await $fetch('/api/competition/settings')
+    if (competitionState.value) {
+      competitionDurationMinutes.value = competitionState.value.durationMinutes
+    }
+  } catch (error) {
+    console.error('Failed to load competition state:', error)
+  }
+}
+
+async function startCompetition() {
+  controlLoading.value = true
+  settingsMessage.value = ''
+  
+  try {
+    const response = await $fetch('/api/competition/start', { method: 'POST' })
+    competitionState.value = response.state
+    settingsMessage.value = 'Competition started!'
+    settingsMessageType.value = 'success'
+  } catch (error) {
+    console.error('Failed to start competition:', error)
+    settingsMessage.value = 'Failed to start competition'
+    settingsMessageType.value = 'error'
+  } finally {
+    controlLoading.value = false
+  }
+}
+
+async function stopCompetition() {
+  if (!confirm('Are you sure you want to stop and reset the competition?')) {
+    return
+  }
+  
+  controlLoading.value = true
+  settingsMessage.value = ''
+  
+  try {
+    const response = await $fetch('/api/competition/stop', { method: 'POST' })
+    competitionState.value = response.state
+    settingsMessage.value = 'Competition stopped and reset'
+    settingsMessageType.value = 'success'
+  } catch (error) {
+    console.error('Failed to stop competition:', error)
+    settingsMessage.value = 'Failed to stop competition'
+    settingsMessageType.value = 'error'
+  } finally {
+    controlLoading.value = false
+  }
+}
+
+async function pauseCompetition() {
+  controlLoading.value = true
+  settingsMessage.value = ''
+  
+  try {
+    const response = await $fetch('/api/competition/pause', { method: 'POST' })
+    competitionState.value = response.state
+    settingsMessage.value = 'Competition paused'
+    settingsMessageType.value = 'success'
+  } catch (error) {
+    console.error('Failed to pause competition:', error)
+    settingsMessage.value = 'Failed to pause competition'
+    settingsMessageType.value = 'error'
+  } finally {
+    controlLoading.value = false
+  }
+}
+
+async function resumeCompetition() {
+  controlLoading.value = true
+  settingsMessage.value = ''
+  
+  try {
+    const response = await $fetch('/api/competition/resume', { method: 'POST' })
+    competitionState.value = response.state
+    settingsMessage.value = 'Competition resumed'
+    settingsMessageType.value = 'success'
+  } catch (error) {
+    console.error('Failed to resume competition:', error)
+    settingsMessage.value = 'Failed to resume competition'
+    settingsMessageType.value = 'error'
+  } finally {
+    controlLoading.value = false
+  }
+}
+
+async function updateDuration() {
+  controlLoading.value = true
+  settingsMessage.value = ''
+  
+  try {
+    const response = await $fetch('/api/competition/update-duration', {
+      method: 'POST',
+      body: { durationMinutes: competitionDurationMinutes.value }
+    })
+    competitionState.value = response.state
+    settingsMessage.value = 'Duration updated successfully'
+    settingsMessageType.value = 'success'
+  } catch (error) {
+    console.error('Failed to update duration:', error)
+    settingsMessage.value = 'Failed to update duration'
+    settingsMessageType.value = 'error'
+  } finally {
+    controlLoading.value = false
+  }
+}
+
+function formatDateTime(dateString: string | null) {
+  if (!dateString) return 'N/A'
+  return new Date(dateString).toLocaleString()
+}
+
 async function fetchAdminData() {
   if (!isAdmin.value) {
     console.log('🚫 Not fetching admin data - user is not admin')
@@ -315,6 +554,31 @@ async function fetchAdminData() {
 watch(isAdmin, async (newIsAdmin) => {
   if (newIsAdmin) {
     await fetchAdminData()
+    await loadCompetitionState()
   }
 }, { immediate: true })
+
+// Refresh competition state periodically when on settings tab
+const refreshInterval = ref<NodeJS.Timeout | null>(null)
+
+watch(activeTab, (newTab) => {
+  if (newTab === 'settings') {
+    // Load immediately
+    loadCompetitionState()
+    // Then refresh every 2 seconds
+    refreshInterval.value = setInterval(loadCompetitionState, 2000)
+  } else {
+    // Clear interval when leaving settings tab
+    if (refreshInterval.value) {
+      clearInterval(refreshInterval.value)
+      refreshInterval.value = null
+    }
+  }
+})
+
+onUnmounted(() => {
+  if (refreshInterval.value) {
+    clearInterval(refreshInterval.value)
+  }
+})
 </script>

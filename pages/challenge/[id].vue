@@ -1,7 +1,7 @@
 <template>
   <div class="max-w-4xl mx-auto p-4 md:p-6">
     <div v-if="loading" class="text-center py-12">
-      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"/>
       <p class="mt-4 text-gray-600">Loading challenge...</p>
     </div>
 
@@ -44,15 +44,15 @@
         <!-- Challenge Actions -->
         <div v-if="submission.status === 'in_progress'" class="flex flex-col sm:flex-row gap-3">
           <button
-            @click="showSubmitModal = true"
             :disabled="!finalAnswer.trim()"
             class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50"
+            @click="showSubmitModal = true"
           >
             Submit Final Answer
           </button>
           <button
-            @click="forfeitChallenge"
             class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600"
+            @click="forfeitChallenge"
           >
             Forfeit Challenge
           </button>
@@ -67,7 +67,7 @@
         </div>
 
         <!-- Chat Messages -->
-        <div class="h-96 overflow-y-auto p-4 space-y-4" ref="chatContainer">
+        <div ref="chatContainer" class="h-96 overflow-y-auto p-4 space-y-4">
           <div v-if="chatHistory.length === 0" class="text-center text-gray-500 py-8">
             <Icon name="heroicons:chat-bubble-left-right" class="w-12 h-12 mx-auto mb-2 text-gray-400" />
             <p>Start a conversation with AI to brainstorm solutions!</p>
@@ -113,9 +113,9 @@
             </div>
             <div class="bg-gray-100 px-4 py-2 rounded-lg">
               <div class="flex space-x-1">
-                <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
-                <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+                <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce"/>
+                <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.1s"/>
+                <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.2s"/>
               </div>
             </div>
           </div>
@@ -127,7 +127,7 @@
             <Icon name="heroicons:chat-bubble-left-right" class="w-8 h-8 mx-auto mb-2" />
             <p>Chat is disabled for completed challenges</p>
           </div>
-          <form v-else @submit.prevent="sendMessage" class="flex flex-col sm:flex-row gap-2">
+          <form v-else class="flex flex-col sm:flex-row gap-2" @submit.prevent="sendMessage">
             <select 
               v-model="selectedProvider" 
               class="border rounded-lg px-3 py-2 bg-white"
@@ -162,7 +162,7 @@
           placeholder="Write your team's final creative solution here..."
           class="w-full h-32 border rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-primary resize-none"
           :disabled="submission.status === 'completed'"
-        ></textarea>
+        />
         
         <div v-if="submission.status === 'completed'" class="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
           <div class="flex items-center gap-2 text-green-800">
@@ -176,9 +176,9 @@
         
         <div v-else class="mt-4 flex justify-end">
           <button
-            @click="showSubmitModal = true"
             :disabled="!finalAnswer.trim()"
             class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50"
+            @click="showSubmitModal = true"
           >
             Submit Final Answer
           </button>
@@ -195,14 +195,14 @@
         </p>
         <div class="flex justify-end gap-2">
           <button 
-            @click="showSubmitModal = false"
             class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+            @click="showSubmitModal = false"
           >
             Cancel
           </button>
           <button 
-            @click="submitChallenge"
             class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
+            @click="submitChallenge"
           >
             Submit
           </button>

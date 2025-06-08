@@ -9,7 +9,7 @@
         <div 
           class="w-3 h-3 rounded-full"
           :class="isConnected ? 'bg-green-500 animate-pulse' : 'bg-gray-400'"
-        ></div>
+        />
         <span class="text-sm text-gray-600">
           {{ isConnected ? 'Live' : 'Offline' }}
         </span>
@@ -23,7 +23,7 @@
 
     <!-- Loading State -->
     <div v-if="loading" class="text-center py-12">
-      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"/>
       <p class="mt-4 text-gray-600">Loading leaderboard...</p>
     </div>
 
@@ -76,7 +76,7 @@
         <!-- Progress indicator for teams with challenges in progress -->
         <div v-if="team.activeChallenges > 0" class="bg-blue-50 px-4 md:px-6 py-2">
           <div class="flex items-center gap-2 text-sm text-blue-800">
-            <div class="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+            <div class="w-2 h-2 bg-blue-500 rounded-full animate-pulse"/>
             Working on {{ team.activeChallenges }} challenge{{ team.activeChallenges === 1 ? '' : 's' }}
           </div>
         </div>

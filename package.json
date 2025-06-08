@@ -8,17 +8,13 @@
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "docker:dev": "docker-compose -f docker-compose.dev.yml up -d",
     "docker:down": "docker-compose -f docker-compose.dev.yml down",
     "docker:reset": "docker-compose -f docker-compose.dev.yml down -v && docker-compose -f docker-compose.dev.yml up -d",
     "docker:logs": "docker-compose -f docker-compose.dev.yml logs -f app-dev",
-    "db:seed": "node scripts/seed-database.js",
-    "db:seed-api": "curl -X POST http://localhost:3000/api/seed",
-    "fetch:nine-employees": "node scripts/generate-seed-sql.js",
-    "update:docker-seed": "mkdir -p init-db && node scripts/generate-seed-sql.js > init-db/001-seed.sql",
-    "start:with-db": "scripts/start-with-db.sh",
-    "dev:setup": "./scripts/dev-up.sh",
-    "dev:teardown": "./scripts/dev-down.sh"
+    "generate-seed-sql": "mkdir -p init-db && node scripts/generate-seed-sql.mjs > init-db/001-seed.sql"
   },
   "dependencies": {
     "@auth/core": "^0.39.1",
@@ -32,6 +28,7 @@
     "@pinia/nuxt": "^0.11.1",
     "@sidebase/nuxt-auth": "^0.10.1",
     "@types/sequelize": "^4.28.20",
+    "cheerio": "^1.0.0",
     "dotenv": "^16.4.7",
     "eslint": "^9.28.0",
     "jsdom": "^25.0.1",

@@ -1,40 +1,59 @@
 export const useCompetitionTimer = () => {
-  // Competition settings - can be configured via environment or database
-  const COMPETITION_DURATION_HOURS = 4 // 4 hours for the bus journey
-  const COMPETITION_START_TIME = '2025-01-15T08:00:00Z' // Example start time
-  
   const timeLeft = ref('')
   const competitionStatus = ref<'upcoming' | 'active' | 'ended'>('upcoming')
   const progress = ref(0)
   const timer = ref<NodeJS.Timeout | null>(null)
+  const isLoading = ref(true)
+  const competitionState = ref<any>(null)
 
-  const startTime = new Date(COMPETITION_START_TIME)
-  const endTime = new Date(startTime.getTime() + COMPETITION_DURATION_HOURS * 60 * 60 * 1000)
+  // Fetch competition state from API
+  async function fetchCompetitionState() {
+    try {
+      const state = await $fetch('/api/competition/settings')
+      competitionState.value = state
+      isLoading.value = false
+    } catch (error) {
+      console.error('Failed to fetch competition state:', error)
+      isLoading.value = false
+    }
+  }
 
   function updateTimer() {
-    const now = new Date()
+    if (!competitionState.value) return
     
-    if (now < startTime) {
-      // Competition hasn't started yet
+    const now = new Date()
+    const { isStarted, startTime, endTime, isPaused } = competitionState.value
+    
+    if (!isStarted) {
+      // Competition not started
       competitionStatus.value = 'upcoming'
-      const timeDiff = startTime.getTime() - now.getTime()
-      timeLeft.value = formatTimeLeft(timeDiff)
+      timeLeft.value = 'Not Started'
       progress.value = 0
-    } else if (now >= startTime && now < endTime) {
-      // Competition is active
+    } else if (isPaused) {
+      // Competition is paused
       competitionStatus.value = 'active'
-      const timeDiff = endTime.getTime() - now.getTime()
-      timeLeft.value = formatTimeLeft(timeDiff)
+      timeLeft.value = 'PAUSED'
+      // Keep the current progress
+    } else if (startTime && endTime) {
+      const start = new Date(startTime)
+      const end = new Date(endTime)
       
-      // Calculate progress (0-100%)
-      const totalDuration = endTime.getTime() - startTime.getTime()
-      const elapsed = now.getTime() - startTime.getTime()
-      progress.value = Math.max(0, Math.min(100, (elapsed / totalDuration) * 100))
-    } else {
-      // Competition has ended
-      competitionStatus.value = 'ended'
-      timeLeft.value = 'Competition Ended'
-      progress.value = 100
+      if (now < end) {
+        // Competition is active
+        competitionStatus.value = 'active'
+        const timeDiff = end.getTime() - now.getTime()
+        timeLeft.value = formatTimeLeft(timeDiff)
+        
+        // Calculate progress (0-100%)
+        const totalDuration = end.getTime() - start.getTime()
+        const elapsed = now.getTime() - start.getTime()
+        progress.value = Math.max(0, Math.min(100, (elapsed / totalDuration) * 100))
+      } else {
+        // Competition has ended
+        competitionStatus.value = 'ended'
+        timeLeft.value = 'Competition Ended'
+        progress.value = 100
+      }
     }
   }
 
@@ -49,9 +68,14 @@ export const useCompetitionTimer = () => {
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
   }
 
-  function startTimer() {
+  async function startTimer() {
+    await fetchCompetitionState() // Fetch state first
     updateTimer() // Initial update
-    timer.value = setInterval(updateTimer, 1000) // Update every second
+    timer.value = setInterval(async () => {
+      // Fetch state periodically to get updates from admin
+      await fetchCompetitionState()
+      updateTimer()
+    }, 1000) // Update every second
   }
 
   function stopTimer() {
@@ -96,11 +120,11 @@ export const useCompetitionTimer = () => {
     timeLeft: readonly(timeLeft),
     competitionStatus: readonly(competitionStatus),
     progress: readonly(progress),
+    isLoading: readonly(isLoading),
     startTimer,
     stopTimer,
     getStatusMessage,
     getStatusColor,
-    startTime: readonly(ref(startTime)),
-    endTime: readonly(ref(endTime))
+    competitionState: readonly(competitionState)
   }
 }
