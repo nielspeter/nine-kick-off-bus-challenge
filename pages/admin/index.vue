@@ -158,7 +158,8 @@
     <!-- Loading State -->
     <div v-if="loading" class="text-center py-12">
       <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-      <p class="mt-4 text-gray-600">Loading admin data...</p>
+      <p v-if="loadingAuth" class="mt-4 text-gray-600">Checking authentication...</p>
+      <p v-else class="mt-4 text-gray-600">Loading admin data...</p>
     </div>
   </div>
 </template>
@@ -173,12 +174,22 @@ definePageMeta({
 
 // Check admin access on component mount
 const { data: session, status } = useAuth()
-const loading = ref(true)
+const loadingAdminData = ref(false)
 const activeTab = ref('teams')
 
 // Get isAdmin directly from session
 const isAdmin = computed(() => {
   return (session.value?.user as any)?.isAdmin === true
+})
+
+// Check if we're still loading auth status
+const loadingAuth = computed(() => {
+  return status.value === 'loading'
+})
+
+// Combined loading state for UI
+const loading = computed(() => {
+  return loadingAuth.value || loadingAdminData.value
 })
 
 // Check admin access
@@ -268,7 +279,7 @@ async function fetchAdminData() {
     return
   }
   
-  loading.value = true
+  loadingAdminData.value = true
   try {
     // Fetch teams
     const teamsResponse = await $fetch('/api/teams')
@@ -288,7 +299,7 @@ async function fetchAdminData() {
   } catch (error) {
     console.error('Failed to fetch admin data:', error)
   } finally {
-    loading.value = false
+    loadingAdminData.value = false
   }
 }
 
