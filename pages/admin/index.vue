@@ -293,6 +293,62 @@
       <p v-if="loadingAuth" class="mt-4 text-gray-600">Checking authentication...</p>
       <p v-else class="mt-4 text-gray-600">Loading admin data...</p>
     </div>
+
+    <!-- Team Members Modal -->
+    <div
+      v-if="showTeamDetailsModal && selectedTeam"
+      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+    >
+      <div class="bg-white rounded-lg p-6 w-full max-w-md">
+        <div class="flex justify-between items-center mb-6">
+          <h3 class="text-xl font-semibold">{{ selectedTeam.name }} Members</h3>
+          <button class="text-gray-500 hover:text-gray-700" @click="showTeamDetailsModal = false">
+            <Icon name="heroicons:x-mark" class="w-6 h-6" />
+          </button>
+        </div>
+
+        <div class="space-y-3">
+          <div
+            v-for="member in selectedTeam.members"
+            :key="member.id"
+            class="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+          >
+            <div class="flex items-center gap-3">
+              <div
+                v-if="member.picture"
+                class="w-8 h-8 rounded-full bg-gray-200"
+                :style="{ backgroundImage: `url(${member.picture})`, backgroundSize: 'cover' }"
+              />
+              <div
+                v-else
+                class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-medium"
+              >
+                {{ member.name?.charAt(0) || '?' }}
+              </div>
+              <div>
+                <div class="font-medium text-sm">{{ member.name }}</div>
+                <div class="text-xs text-gray-500">{{ member.email }}</div>
+              </div>
+            </div>
+            <div
+              v-if="member.id === selectedTeam.captainId"
+              class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded"
+            >
+              Captain
+            </div>
+          </div>
+        </div>
+
+        <div class="flex justify-end mt-6">
+          <button
+            class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300"
+            @click="showTeamDetailsModal = false"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -372,6 +428,10 @@ const stats = ref({
   activeSubmissions: 0,
 })
 
+// Team details modal state
+const showTeamDetailsModal = ref(false)
+const selectedTeam = ref(null)
+
 const tabs = [
   { id: 'settings', label: 'Competition Settings' },
   { id: 'teams', label: 'Teams' },
@@ -406,8 +466,8 @@ function formatDate(dateString: string) {
 }
 
 function viewTeamDetails(team: any) {
-  // TODO: Implement team details modal or navigation
-  console.log('View team details:', team)
+  selectedTeam.value = team
+  showTeamDetailsModal.value = true
 }
 
 function reviewSubmission(submission: any) {

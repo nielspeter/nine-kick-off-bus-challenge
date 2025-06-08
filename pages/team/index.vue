@@ -8,7 +8,7 @@
           :class="isConnected ? 'bg-green-500 animate-pulse' : 'bg-gray-400'"
         />
         <span class="text-sm text-gray-600">
-          {{ isConnected ? 'Live' : 'Offline' }}
+          {{ updating ? 'Updating...' : isConnected ? 'Live' : 'Offline' }}
         </span>
       </div>
     </div>
@@ -134,8 +134,10 @@
 
     <!-- Create/Join Team -->
     <div v-if="!userTeam" class="bg-white rounded-lg shadow-md p-6 mb-6">
-      <h2 class="text-2xl font-semibold mb-4">You're not on a team yet</h2>
-      <div class="flex gap-4">
+      <h2 class="text-2xl font-semibold mb-4">
+        {{ user ? "You're not on a team yet" : 'Sign in to manage teams' }}
+      </h2>
+      <div v-if="user" class="flex gap-4">
         <button
           class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 border border-gray-300"
           @click="showCreateModal = true"
@@ -149,6 +151,9 @@
         >
           Join Existing Team
         </button>
+      </div>
+      <div v-else class="text-center">
+        <p class="text-gray-600 mb-4">You need to sign in to create or join a team.</p>
       </div>
     </div>
 
@@ -174,12 +179,19 @@
               <p class="text-gray-600">{{ team.members?.length || 0 }}/4 members</p>
             </div>
             <button
-              v-if="!userTeam && (team.members?.length || 0) < 4"
+              v-if="user && !userTeam && (team.members?.length || 0) < 4"
               class="bg-primary text-white px-3 py-1 rounded text-sm hover:bg-primary/90"
               @click="joinTeam(team.id)"
             >
               Join
             </button>
+            <span
+              v-else-if="!user && (team.members?.length || 0) < 4"
+              class="bg-gray-300 text-gray-500 px-3 py-1 rounded text-sm cursor-not-allowed"
+              title="Sign in to join teams"
+            >
+              Join
+            </span>
           </div>
           <div class="flex flex-wrap gap-2">
             <span
@@ -291,8 +303,12 @@
               class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
             >
               <option value="">Select a user to invite...</option>
-              <option v-for="user in availableUsers" :key="user.id" :value="user.id">
-                {{ user.name }} ({{ user.email }})
+              <option
+                v-for="availableUser in availableUsers"
+                :key="availableUser.id"
+                :value="availableUser.id"
+              >
+                {{ availableUser.name }} ({{ availableUser.email }})
               </option>
             </select>
             <p v-if="availableUsers.length === 0" class="text-sm text-gray-500 mt-1">
@@ -380,19 +396,23 @@
 </template>
 
 <script setup lang="ts">
+// Authentication setup
+definePageMeta({
+  auth: {
+    navigateUnauthenticatedTo: '/auth/signin',
+  },
+})
+
+const { data: session } = useAuth()
+const user = computed(() => session.value?.user)
+
 // Real-time updates
 const { isConnected, startPolling, stopPolling } = useRealtime()
-
-// Temporary mock data for testing without auth
-const mockUser = {
-  id: 'user_anv',
-  email: 'anv@nine.dk',
-  name: 'Aku Nour Shirazi Valta',
-}
 
 const teams = ref([])
 const userTeam = ref(null)
 const loading = ref(false)
+const updating = ref(false)
 const currentChallenge = ref(null)
 
 const showCreateModal = ref(false)
@@ -406,37 +426,51 @@ const selectedNewCaptain = ref('')
 const availableUsers = ref([])
 
 const isUserCaptain = computed(() => {
-  return userTeam.value?.captainId === mockUser.id
+  return userTeam.value?.captainId === (user.value as any)?.id
 })
 
 const availableTeams = computed(() => {
+  if (!user.value) return []
   return teams.value.filter(
-    team =>
-      (team.members?.length || 0) < 4 && !team.members?.find(member => member.id === mockUser.id)
+    (team: any) =>
+      (team.members?.length || 0) < 4 &&
+      !team.members?.find((member: any) => member.id === (user.value as any)?.id)
   )
 })
 
 const otherMembers = computed(() => {
-  if (!userTeam.value?.members) return []
-  return userTeam.value.members.filter(member => member.id !== mockUser.id)
+  if (!userTeam.value?.members || !user.value) return []
+  return userTeam.value.members.filter((member: any) => member.id !== (user.value as any)?.id)
 })
 
 async function fetchTeams() {
-  loading.value = true
+  // Show loading only on initial load, updating for subsequent refreshes
+  if (teams.value.length === 0) {
+    loading.value = true
+  } else {
+    updating.value = true
+  }
+
   try {
     const response = await $fetch('/api/teams')
     teams.value = response.teams
 
     // Find user's team
-    userTeam.value =
-      teams.value.find(team => team.members?.find(member => member.id === mockUser.id)) || null
+    if (user.value) {
+      userTeam.value =
+        teams.value.find((team: any) =>
+          team.members?.find((member: any) => member.id === (user.value as any)?.id)
+        ) || null
+    }
 
     console.log('Teams fetched:', teams.value)
     console.log('User team:', userTeam.value)
   } catch (error) {
     console.error('Failed to fetch teams:', error)
   }
+
   loading.value = false
+  updating.value = false
 }
 
 async function createTeam() {
@@ -445,13 +479,14 @@ async function createTeam() {
       method: 'POST',
       body: {
         name: newTeamName.value,
-        captainEmail: mockUser.email,
+        captainEmail: user.value?.email,
       },
     })
 
     showCreateModal.value = false
     newTeamName.value = ''
-    await fetchTeams()
+    // Immediate refresh for instant feedback
+    await Promise.all([fetchTeams(), fetchCurrentChallenge()])
   } catch (error) {
     console.error('Failed to create team:', error)
     alert('Failed to create team: ' + error.message)
@@ -459,17 +494,20 @@ async function createTeam() {
 }
 
 async function joinTeam(teamId: string) {
+  if (!user.value?.email) return
+
   try {
     await $fetch('/api/teams/join', {
       method: 'POST',
       body: {
         teamId,
-        userEmail: mockUser.email,
+        userEmail: user.value.email,
       },
     })
 
     showJoinModal.value = false
-    await fetchTeams()
+    // Immediate refresh for instant feedback
+    await Promise.all([fetchTeams(), fetchCurrentChallenge()])
   } catch (error) {
     console.error('Failed to join team:', error)
     alert('Failed to join team: ' + error.message)
@@ -477,7 +515,7 @@ async function joinTeam(teamId: string) {
 }
 
 async function leaveTeam() {
-  if (!userTeam.value) return
+  if (!userTeam.value || !user.value?.email) return
 
   const confirmMessage = isUserCaptain.value
     ? 'Are you sure you want to disband this team? This action cannot be undone.'
@@ -490,11 +528,12 @@ async function leaveTeam() {
       method: 'POST',
       body: {
         teamId: userTeam.value.id,
-        userEmail: mockUser.email,
+        userEmail: user.value.email,
       },
     })
 
-    await fetchTeams()
+    // Immediate refresh for instant feedback
+    await Promise.all([fetchTeams(), fetchCurrentChallenge()])
   } catch (error) {
     console.error('Failed to leave team:', error)
     alert('Failed to leave team: ' + error.message)
@@ -515,8 +554,8 @@ async function removeMember(member: any) {
       },
     })
 
-    // Refresh team data
-    await fetchTeams()
+    // Immediate refresh for instant feedback
+    await Promise.all([fetchTeams(), fetchAvailableUsers()])
   } catch (error) {
     console.error('Failed to remove team member:', error)
     alert('Failed to remove team member: ' + error.message)
@@ -543,18 +582,17 @@ async function inviteMember() {
   if (!selectedUser) return
 
   try {
-    await $fetch('/api/teams/join', {
+    await $fetch(`/api/teams/${userTeam.value.id}/invite-member`, {
       method: 'POST',
       body: {
-        teamId: userTeam.value.id,
         userEmail: selectedUser.email,
       },
     })
 
     showInviteModal.value = false
     selectedUserToInvite.value = ''
-    await fetchTeams()
-    await fetchAvailableUsers() // Refresh available users
+    // Immediate refresh for instant feedback
+    await Promise.all([fetchTeams(), fetchAvailableUsers(), fetchCurrentChallenge()])
   } catch (error) {
     console.error('Failed to invite member:', error)
     alert('Failed to invite member: ' + error.message)
@@ -574,7 +612,7 @@ async function transferCaptaincy() {
       body: {
         teamId: userTeam.value.id,
         newCaptainId: selectedNewCaptain.value,
-        currentCaptainEmail: mockUser.email,
+        currentCaptainEmail: user.value?.email,
       },
     })
 
@@ -599,7 +637,7 @@ async function disbandTeam() {
       method: 'POST',
       body: {
         teamId: userTeam.value.id,
-        userEmail: mockUser.email,
+        userEmail: user.value?.email,
         forceDisband: true,
       },
     })
@@ -625,7 +663,7 @@ async function fetchCurrentChallenge() {
 
   try {
     const response = await $fetch(`/api/teams/${userTeam.value.id}/current-challenge`)
-    currentChallenge.value = response.data
+    currentChallenge.value = (response as any).data || null
   } catch (error) {
     console.error('Failed to fetch current challenge:', error)
     currentChallenge.value = null
@@ -646,11 +684,15 @@ onMounted(async () => {
   await fetchTeams()
   await fetchCurrentChallenge()
   await fetchAvailableUsers()
-  // Start real-time updates every 10 seconds for team changes
+  // Start real-time updates every 3 seconds for team changes
   startPolling(async () => {
     await fetchTeams()
     await fetchCurrentChallenge()
-  }, 10000)
+    // Refresh available users when team changes occur
+    if (showInviteModal.value) {
+      await fetchAvailableUsers()
+    }
+  }, 3000)
 })
 
 onUnmounted(() => {

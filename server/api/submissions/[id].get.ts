@@ -1,7 +1,17 @@
+import { getServerSession } from '#auth'
 import { getDatabase } from '~/server/utils/db'
 
 export default defineEventHandler(async event => {
   try {
+    // Verify user session
+    const session = await getServerSession(event)
+    if (!session?.user?.email) {
+      throw createError({
+        statusCode: 401,
+        statusMessage: 'Authentication required',
+      })
+    }
+
     const submissionId = getRouterParam(event, 'id')
 
     if (!submissionId) {

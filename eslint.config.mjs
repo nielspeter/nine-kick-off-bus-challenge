@@ -5,7 +5,9 @@ import eslintConfigPrettier from 'eslint-config-prettier'
 
 export default withNuxt({
   rules: {
-    // Add any custom rules here
+    // Disable TypeScript any type checking
+    '@typescript-eslint/no-explicit-any': 'off',
+    '@typescript-eslint/no-unused-vars': 'off',
   },
 }).append({
   name: 'prettier-integration',

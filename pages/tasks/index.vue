@@ -170,12 +170,15 @@
 <script setup lang="ts">
 import { useCompetitionTimer } from '~/composables/useCompetitionTimer'
 
-// Mock user for testing
-const mockUser = {
-  id: 'user_anv',
-  email: 'anv@nine.dk',
-  name: 'Aku Nour Shirazi Valta',
-}
+// Authentication setup
+definePageMeta({
+  auth: {
+    navigateUnauthenticatedTo: '/auth/signin',
+  },
+})
+
+const { data: session } = useAuth()
+const user = computed(() => session.value?.user)
 
 const loading = ref(true)
 const tasks = ref([])
@@ -346,11 +349,14 @@ async function fetchData() {
     // Fetch user's team
     const teamsResponse = await $fetch('/api/teams')
     console.log('Teams response:', teamsResponse)
-    console.log('Looking for user with ID:', mockUser.id)
+    console.log('Looking for user with ID:', user.value?.id)
 
-    userTeam.value =
-      teamsResponse.teams.find(team => team.members?.find(member => member.id === mockUser.id)) ||
-      null
+    if (user.value) {
+      userTeam.value =
+        teamsResponse.teams.find(team =>
+          team.members?.find(member => member.id === user.value?.id)
+        ) || null
+    }
 
     console.log('Found user team:', userTeam.value)
 

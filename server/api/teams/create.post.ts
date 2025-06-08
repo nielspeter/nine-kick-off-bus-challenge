@@ -1,5 +1,16 @@
+import { getServerSession } from '#auth'
+
 export default defineEventHandler(async event => {
   try {
+    // Verify user session using @sidebase/nuxt-auth
+    const session = await getServerSession(event)
+    if (!session?.user?.email) {
+      throw createError({
+        statusCode: 401,
+        statusMessage: 'Authentication required',
+      })
+    }
+
     const body = await readBody(event)
     const { name, captainEmail } = body
 
@@ -10,8 +21,16 @@ export default defineEventHandler(async event => {
       })
     }
 
+    // Verify that the requesting user is the captain
+    if (session.user.email !== captainEmail) {
+      throw createError({
+        statusCode: 403,
+        statusMessage: 'You can only create teams for yourself',
+      })
+    }
+
     const config = useRuntimeConfig()
-    const { Sequelize } = await import('sequelize')
+    const { Sequelize, QueryTypes } = await import('sequelize')
     const { initModels } = await import('~/server/models')
 
     const sequelize = new Sequelize(config.databaseUrl, { logging: false })
@@ -30,7 +49,7 @@ export default defineEventHandler(async event => {
     // Check if captain is already in a team
     const existingMembership = await sequelize.query(
       'SELECT * FROM "TeamMembers" WHERE "UserId" = ?',
-      { replacements: [captain.id], type: sequelize.QueryTypes.SELECT }
+      { replacements: [captain.id], type: QueryTypes.SELECT }
     )
 
     if (existingMembership.length > 0) {
@@ -50,7 +69,7 @@ export default defineEventHandler(async event => {
     // Add captain as first member
     await sequelize.query(
       'INSERT INTO "TeamMembers" ("TeamId", "UserId", "createdAt", "updatedAt") VALUES (?, ?, NOW(), NOW())',
-      { replacements: [team.id, captain.id], type: sequelize.QueryTypes.INSERT }
+      { replacements: [team.id, captain.id], type: QueryTypes.INSERT }
     )
 
     // Fetch complete team data

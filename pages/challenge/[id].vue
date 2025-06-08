@@ -238,6 +238,13 @@
 </template>
 
 <script setup lang="ts">
+// Authentication setup - following @sidebase/nuxt-auth pattern
+definePageMeta({
+  middleware: 'auth',
+})
+
+const { data: session } = useAuth()
+
 const route = useRoute()
 const submissionId = route.params.id as string
 

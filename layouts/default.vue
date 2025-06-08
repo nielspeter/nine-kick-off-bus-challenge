@@ -113,12 +113,20 @@
               Home
             </NuxtLink>
             <NuxtLink
+              v-if="user"
               to="/team"
               class="block px-3 py-2 text-gray-700 hover:text-primary hover:bg-gray-50 rounded-md"
               @click="showMobileMenu = false"
             >
               Teams
             </NuxtLink>
+            <span
+              v-else
+              class="block px-3 py-2 text-gray-400 cursor-not-allowed rounded-md"
+              title="Sign in to manage teams"
+            >
+              Teams
+            </span>
             <NuxtLink
               to="/tasks"
               class="block px-3 py-2 text-gray-700 hover:text-primary hover:bg-gray-50 rounded-md"
@@ -227,6 +235,6 @@ watch(
 
 async function logout() {
   await signOut()
-  await navigateTo('/auth/signin')
+  await navigateTo('/')
 }
 </script>

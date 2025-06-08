@@ -1,5 +1,16 @@
+import { getServerSession } from '#auth'
+
 export default defineEventHandler(async event => {
   try {
+    // Verify user session
+    const session = await getServerSession(event)
+    if (!session?.user?.email) {
+      throw createError({
+        statusCode: 401,
+        statusMessage: 'Authentication required',
+      })
+    }
+
     const body = await readBody(event)
     const { teamId, userEmail, forceDisband } = body
 
@@ -7,6 +18,14 @@ export default defineEventHandler(async event => {
       throw createError({
         statusCode: 400,
         statusMessage: 'Team ID and user email are required',
+      })
+    }
+
+    // Verify that the requesting user matches the userEmail
+    if (session.user.email !== userEmail) {
+      throw createError({
+        statusCode: 403,
+        statusMessage: 'You can only leave teams for yourself',
       })
     }
 

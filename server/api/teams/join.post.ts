@@ -1,5 +1,16 @@
+import { getServerSession } from '#auth'
+
 export default defineEventHandler(async event => {
   try {
+    // Verify user session
+    const session = await getServerSession(event)
+    if (!session?.user?.email) {
+      throw createError({
+        statusCode: 401,
+        statusMessage: 'Authentication required',
+      })
+    }
+
     const body = await readBody(event)
     const { teamId, userEmail } = body
 
@@ -10,8 +21,16 @@ export default defineEventHandler(async event => {
       })
     }
 
+    // Verify that the requesting user matches the userEmail
+    if (session.user.email !== userEmail) {
+      throw createError({
+        statusCode: 403,
+        statusMessage: 'You can only join teams for yourself',
+      })
+    }
+
     const config = useRuntimeConfig()
-    const { Sequelize } = await import('sequelize')
+    const { Sequelize, QueryTypes } = await import('sequelize')
     const { initModels } = await import('~/server/models')
 
     const sequelize = new Sequelize(config.databaseUrl, { logging: false })
@@ -40,7 +59,7 @@ export default defineEventHandler(async event => {
     // Check if user is already in a team
     const existingMembership = await sequelize.query(
       'SELECT * FROM "TeamMembers" WHERE "UserId" = ?',
-      { replacements: [user.id], type: sequelize.QueryTypes.SELECT }
+      { replacements: [user.id], type: QueryTypes.SELECT }
     )
 
     if (existingMembership.length > 0) {
@@ -54,10 +73,10 @@ export default defineEventHandler(async event => {
     // Check team size limit (max 4 members)
     const teamMemberCount = await sequelize.query(
       'SELECT COUNT(*) as count FROM "TeamMembers" WHERE "TeamId" = ?',
-      { replacements: [teamId], type: sequelize.QueryTypes.SELECT }
+      { replacements: [teamId], type: QueryTypes.SELECT }
     )
 
-    if (teamMemberCount[0].count >= 4) {
+    if ((teamMemberCount[0] as any).count >= 4) {
       await sequelize.close()
       throw createError({
         statusCode: 400,
@@ -68,7 +87,7 @@ export default defineEventHandler(async event => {
     // Add user to team
     await sequelize.query(
       'INSERT INTO "TeamMembers" ("TeamId", "UserId", "createdAt", "updatedAt") VALUES (?, ?, NOW(), NOW())',
-      { replacements: [teamId, user.id], type: sequelize.QueryTypes.INSERT }
+      { replacements: [teamId, user.id], type: QueryTypes.INSERT }
     )
 
     // Fetch updated team data

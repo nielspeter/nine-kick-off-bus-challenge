@@ -1,8 +1,18 @@
+import { getServerSession } from '#auth'
 import { getDatabase } from '~/server/utils/db'
 import { getCompetitionState } from '~/server/utils/competitionState'
 
 export default defineEventHandler(async event => {
   try {
+    // Verify user session
+    const session = await getServerSession(event)
+    if (!session?.user?.email) {
+      throw createError({
+        statusCode: 401,
+        statusMessage: 'Authentication required',
+      })
+    }
+
     const body = await readBody(event)
     const { teamId, taskId } = body
 

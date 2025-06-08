@@ -30,16 +30,7 @@ export default defineEventHandler(async event => {
     const { User, Team } = initModels(sequelize)
 
     // Find the team
-    const team = await Team.findByPk(teamId, {
-      include: [
-        {
-          model: User,
-          as: 'members',
-          attributes: ['id', 'email', 'name', 'picture', 'role'],
-        },
-      ],
-    })
-
+    const team = await Team.findByPk(teamId)
     if (!team) {
       await sequelize.close()
       throw createError({
@@ -48,7 +39,7 @@ export default defineEventHandler(async event => {
       })
     }
 
-    // Find the requesting user
+    // Find the requesting user (captain)
     const requestingUser = await User.findOne({ where: { email: session.user.email } })
     if (!requestingUser) {
       await sequelize.close()
@@ -63,47 +54,56 @@ export default defineEventHandler(async event => {
       await sequelize.close()
       throw createError({
         statusCode: 403,
-        statusMessage: 'Only team captains can remove members',
+        statusMessage: 'Only team captains can invite members',
       })
     }
 
-    // Find the user to remove
-    const userToRemove = await User.findOne({ where: { email: userEmail } })
-    if (!userToRemove) {
+    // Find the user to invite
+    const userToInvite = await User.findOne({ where: { email: userEmail } })
+    if (!userToInvite) {
       await sequelize.close()
       throw createError({
         statusCode: 404,
-        statusMessage: 'User not found',
+        statusMessage: 'User to invite not found',
       })
     }
 
-    // Check if user is a member of this team
-    const isMember = team.members?.some(member => member.id === userToRemove.id)
-    if (!isMember) {
+    // Check if user is already in a team
+    const existingMembership = await sequelize.query(
+      'SELECT * FROM "TeamMembers" WHERE "UserId" = ?',
+      { replacements: [userToInvite.id], type: QueryTypes.SELECT }
+    )
+
+    if (existingMembership.length > 0) {
       await sequelize.close()
       throw createError({
         statusCode: 400,
-        statusMessage: 'User is not a member of this team',
+        statusMessage: 'User is already a member of a team',
       })
     }
 
-    // Cannot remove the captain
-    if (userToRemove.id === team.captainId) {
+    // Check team size limit (max 4 members)
+    const teamMemberCount = await sequelize.query(
+      'SELECT COUNT(*) as count FROM "TeamMembers" WHERE "TeamId" = ?',
+      { replacements: [teamId], type: QueryTypes.SELECT }
+    )
+
+    if ((teamMemberCount[0] as any).count >= 4) {
       await sequelize.close()
       throw createError({
         statusCode: 400,
-        statusMessage: 'Cannot remove team captain. Transfer captaincy first.',
+        statusMessage: 'Team is full (maximum 4 members)',
       })
     }
 
-    // Remove the user from the team using raw SQL
-    await sequelize.query('DELETE FROM "TeamMembers" WHERE "TeamId" = ? AND "UserId" = ?', {
-      replacements: [teamId, userToRemove.id],
-      type: QueryTypes.DELETE,
-    })
+    // Add user to team
+    await sequelize.query(
+      'INSERT INTO "TeamMembers" ("TeamId", "UserId", "createdAt", "updatedAt") VALUES (?, ?, NOW(), NOW())',
+      { replacements: [teamId, userToInvite.id], type: QueryTypes.INSERT }
+    )
 
-    // Get updated team data
-    const updatedTeam = await Team.findByPk(teamId, {
+    // Fetch updated team data
+    const teamWithMembers = await Team.findByPk(teamId, {
       include: [
         {
           model: User,
@@ -122,11 +122,11 @@ export default defineEventHandler(async event => {
 
     return {
       success: true,
-      message: 'Team member removed successfully',
-      team: updatedTeam,
+      team: teamWithMembers,
+      message: `${userToInvite.name} was invited to the team successfully`,
     }
   } catch (error: unknown) {
-    console.error('Remove team member error:', error)
+    console.error('Invite team member error:', error)
 
     if (error && typeof error === 'object' && 'statusCode' in error) {
       throw error
@@ -134,7 +134,7 @@ export default defineEventHandler(async event => {
 
     throw createError({
       statusCode: 500,
-      statusMessage: error instanceof Error ? error.message : 'Failed to remove team member',
+      statusMessage: error instanceof Error ? error.message : 'Failed to invite team member',
     })
   }
 })
