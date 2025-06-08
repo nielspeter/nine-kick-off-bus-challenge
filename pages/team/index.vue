@@ -76,6 +76,15 @@
               Team Captain
             </div>
           </div>
+          <!-- Remove Member Button (only visible to captain for non-captain members) -->
+          <button
+            v-if="isUserCaptain && member.id !== userTeam.captainId"
+            class="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-full transition-colors"
+            title="Remove member from team"
+            @click="removeMember(member)"
+          >
+            <Icon name="heroicons:x-mark" class="w-4 h-4" />
+          </button>
         </div>
       </div>
 
@@ -481,6 +490,28 @@ async function leaveTeam() {
   } catch (error) {
     console.error('Failed to leave team:', error)
     alert('Failed to leave team: ' + error.message)
+  }
+}
+
+async function removeMember(member: any) {
+  if (!userTeam.value || !isUserCaptain.value) return
+
+  const confirmMessage = `Are you sure you want to remove ${member.name} from the team?`
+  if (!confirm(confirmMessage)) return
+
+  try {
+    await $fetch(`/api/teams/${userTeam.value.id}/remove-member`, {
+      method: 'POST',
+      body: {
+        userEmail: member.email
+      }
+    })
+
+    // Refresh team data
+    await fetchTeams()
+  } catch (error) {
+    console.error('Failed to remove team member:', error)
+    alert('Failed to remove team member: ' + error.message)
   }
 }
 
