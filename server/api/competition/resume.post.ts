@@ -19,7 +19,7 @@ export default defineEventHandler(async event => {
     })
   }
 
-  const state = resumeCompetition()
+  const state = await resumeCompetition()
 
   return {
     success: true,

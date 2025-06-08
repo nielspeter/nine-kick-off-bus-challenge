@@ -32,7 +32,7 @@ export default defineEventHandler(async event => {
     })
   }
 
-  const state = updateCompetitionDuration(body.durationMinutes)
+  const state = await updateCompetitionDuration(body.durationMinutes)
 
   return {
     success: true,

@@ -65,6 +65,21 @@ export class Submission extends Model<
   declare readonly updatedAt: CreationOptional<Date>
 }
 
+export class CompetitionSettings extends Model<
+  InferAttributes<CompetitionSettings>,
+  InferCreationAttributes<CompetitionSettings>
+> {
+  declare id: CreationOptional<string>
+  declare isStarted: CreationOptional<boolean>
+  declare startTime: CreationOptional<Date | null>
+  declare durationMinutes: CreationOptional<number>
+  declare isPaused: CreationOptional<boolean>
+  declare pausedAt: CreationOptional<Date | null>
+  declare totalPausedTime: CreationOptional<number>
+  declare readonly createdAt: CreationOptional<Date>
+  declare readonly updatedAt: CreationOptional<Date>
+}
+
 export function initModels(sequelize: Sequelize) {
   // Initialize User model
   User.init(
@@ -222,5 +237,46 @@ export function initModels(sequelize: Sequelize) {
   Submission.belongsTo(Team, { foreignKey: 'teamId', as: 'team' })
   Submission.belongsTo(Task, { foreignKey: 'taskId', as: 'task' })
 
-  return { User, Team, Task, Submission }
+  // Initialize CompetitionSettings model
+  CompetitionSettings.init(
+    {
+      id: {
+        type: DataTypes.UUID,
+        defaultValue: DataTypes.UUIDV4,
+        primaryKey: true,
+      },
+      isStarted: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+      },
+      startTime: {
+        type: DataTypes.DATE,
+        allowNull: true,
+      },
+      durationMinutes: {
+        type: DataTypes.INTEGER,
+        defaultValue: 240, // Default 4 hours
+      },
+      isPaused: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+      },
+      pausedAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
+      },
+      totalPausedTime: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0, // in milliseconds
+      },
+      createdAt: DataTypes.DATE,
+      updatedAt: DataTypes.DATE,
+    },
+    {
+      sequelize,
+      modelName: 'CompetitionSettings',
+    }
+  )
+
+  return { User, Team, Task, Submission, CompetitionSettings }
 }

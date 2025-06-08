@@ -240,6 +240,18 @@ CREATE TABLE IF NOT EXISTS "Tasks" (
     "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS "CompetitionSettings" (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    "isStarted" BOOLEAN DEFAULT FALSE,
+    "startTime" TIMESTAMP WITH TIME ZONE,
+    "durationMinutes" INTEGER DEFAULT 240,
+    "isPaused" BOOLEAN DEFAULT FALSE,
+    "pausedAt" TIMESTAMP WITH TIME ZONE,
+    "totalPausedTime" INTEGER DEFAULT 0,
+    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Clear existing data (optional - remove if you want to keep existing data)
 -- DELETE FROM "Users";
 -- DELETE FROM "Tasks";

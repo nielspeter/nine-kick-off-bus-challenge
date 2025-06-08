@@ -1,7 +1,7 @@
 import { getCompetitionState } from '~/server/utils/competitionState'
 
 export default defineEventHandler(async () => {
-  const state = getCompetitionState()
+  const state = await getCompetitionState()
 
   return {
     isStarted: state.isStarted,

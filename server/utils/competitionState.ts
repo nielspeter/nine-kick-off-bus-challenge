@@ -1,5 +1,7 @@
-// Global competition state management
-// This keeps the competition state in memory for the duration of the server runtime
+// Global competition state management with database persistence
+import type { CompetitionSettings as CompetitionSettingsType } from '~/server/models'
+import { getDatabase } from '~/server/utils/db'
+import { initModels } from '~/server/models'
 
 interface CompetitionState {
   isStarted: boolean
@@ -10,82 +12,179 @@ interface CompetitionState {
   totalPausedTime: number // in milliseconds
 }
 
-// Initial state - competition not started
-const competitionState: CompetitionState = {
-  isStarted: false,
-  startTime: null,
-  durationMinutes: 240, // Default 4 hours
-  isPaused: false,
-  pausedAt: null,
-  totalPausedTime: 0,
+// Cache for the competition state to avoid excessive DB queries
+let cachedState: CompetitionState | null = null
+let cacheTimestamp: number = 0
+const CACHE_DURATION = 2000 // 2 seconds
+
+// Get or create the singleton competition settings record
+async function getOrCreateSettings(): Promise<CompetitionSettingsType> {
+  const sequelize = await getDatabase()
+  const { CompetitionSettings } = initModels(sequelize)
+
+  // Try to find existing settings
+  let settings = await CompetitionSettings.findOne()
+
+  if (!settings) {
+    // Create default settings if none exist
+    settings = await CompetitionSettings.create({
+      isStarted: false,
+      startTime: null,
+      durationMinutes: 240, // Default 4 hours
+      isPaused: false,
+      pausedAt: null,
+      totalPausedTime: 0,
+    })
+  }
+
+  return settings as CompetitionSettingsType
 }
 
-export function getCompetitionState() {
+// Convert database model to state object
+function modelToState(settings: CompetitionSettingsType): CompetitionState {
+  return {
+    isStarted: settings.isStarted,
+    startTime: settings.startTime,
+    durationMinutes: settings.durationMinutes,
+    isPaused: settings.isPaused,
+    pausedAt: settings.pausedAt,
+    totalPausedTime: settings.totalPausedTime,
+  }
+}
+
+export async function getCompetitionState() {
+  // Check if we have a valid cached state
+  if (cachedState && Date.now() - cacheTimestamp < CACHE_DURATION) {
+    const state = cachedState
+
+    // Calculate end time if competition is started
+    if (state.isStarted && state.startTime) {
+      const endTime = new Date(
+        state.startTime.getTime() + state.durationMinutes * 60 * 1000 + state.totalPausedTime
+      )
+
+      return {
+        ...state,
+        endTime,
+      }
+    }
+
+    return {
+      ...state,
+      endTime: null,
+    }
+  }
+
+  // Fetch from database
+  const settings = await getOrCreateSettings()
+  const state = modelToState(settings)
+
+  // Update cache
+  cachedState = state
+  cacheTimestamp = Date.now()
+
   // Calculate end time if competition is started
-  if (competitionState.isStarted && competitionState.startTime) {
+  if (state.isStarted && state.startTime) {
     const endTime = new Date(
-      competitionState.startTime.getTime() +
-        competitionState.durationMinutes * 60 * 1000 +
-        competitionState.totalPausedTime
+      state.startTime.getTime() + state.durationMinutes * 60 * 1000 + state.totalPausedTime
     )
 
     return {
-      ...competitionState,
+      ...state,
       endTime,
     }
   }
 
   return {
-    ...competitionState,
+    ...state,
     endTime: null,
   }
 }
 
-export function startCompetition() {
-  if (!competitionState.isStarted) {
-    competitionState.isStarted = true
-    competitionState.startTime = new Date()
-    competitionState.isPaused = false
-    competitionState.pausedAt = null
-    competitionState.totalPausedTime = 0
+export async function startCompetition() {
+  const settings = await getOrCreateSettings()
+
+  if (!settings.isStarted) {
+    await settings.update({
+      isStarted: true,
+      startTime: new Date(),
+      isPaused: false,
+      pausedAt: null,
+      totalPausedTime: 0,
+    })
+
+    // Clear cache to force reload
+    cachedState = null
   }
+
   return getCompetitionState()
 }
 
-export function stopCompetition() {
-  competitionState.isStarted = false
-  competitionState.startTime = null
-  competitionState.isPaused = false
-  competitionState.pausedAt = null
-  competitionState.totalPausedTime = 0
+export async function stopCompetition() {
+  const settings = await getOrCreateSettings()
+
+  await settings.update({
+    isStarted: false,
+    startTime: null,
+    isPaused: false,
+    pausedAt: null,
+    totalPausedTime: 0,
+  })
+
+  // Clear cache to force reload
+  cachedState = null
+
   return getCompetitionState()
 }
 
-export function pauseCompetition() {
-  if (competitionState.isStarted && !competitionState.isPaused) {
-    competitionState.isPaused = true
-    competitionState.pausedAt = new Date()
+export async function pauseCompetition() {
+  const settings = await getOrCreateSettings()
+
+  if (settings.isStarted && !settings.isPaused) {
+    await settings.update({
+      isPaused: true,
+      pausedAt: new Date(),
+    })
+
+    // Clear cache to force reload
+    cachedState = null
   }
+
   return getCompetitionState()
 }
 
-export function resumeCompetition() {
-  if (competitionState.isStarted && competitionState.isPaused && competitionState.pausedAt) {
-    const pauseDuration = new Date().getTime() - competitionState.pausedAt.getTime()
-    competitionState.totalPausedTime += pauseDuration
-    competitionState.isPaused = false
-    competitionState.pausedAt = null
+export async function resumeCompetition() {
+  const settings = await getOrCreateSettings()
+
+  if (settings.isStarted && settings.isPaused && settings.pausedAt) {
+    const pauseDuration = new Date().getTime() - settings.pausedAt.getTime()
+    await settings.update({
+      totalPausedTime: settings.totalPausedTime + pauseDuration,
+      isPaused: false,
+      pausedAt: null,
+    })
+
+    // Clear cache to force reload
+    cachedState = null
   }
+
   return getCompetitionState()
 }
 
-export function updateCompetitionDuration(minutes: number) {
+export async function updateCompetitionDuration(minutes: number) {
   if (minutes > 0) {
-    competitionState.durationMinutes = minutes
+    const settings = await getOrCreateSettings()
+    await settings.update({
+      durationMinutes: minutes,
+    })
+
+    // Clear cache to force reload
+    cachedState = null
   }
+
   return getCompetitionState()
 }
 
-export function resetCompetition() {
+export async function resetCompetition() {
   return stopCompetition()
 }

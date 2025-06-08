@@ -33,7 +33,7 @@ export default defineNitroPlugin(async nitroApp => {
     console.log('✅ Database connection established successfully')
 
     // Initialize models
-    const { User, Team, Task, Submission } = initModels(sequelize)
+    const { User, Team, Task, Submission, CompetitionSettings } = initModels(sequelize)
 
     // Sync database (create tables)
     await sequelize.sync({ alter: false }) // Use alter: true for development if needed
@@ -42,7 +42,7 @@ export default defineNitroPlugin(async nitroApp => {
     // Database is now initialized and ready for use
 
     // Auto-seed database if it's empty
-    await autoSeedDatabase(sequelize, { User, Team, Task, Submission })
+    await autoSeedDatabase(sequelize, { User, Team, Task, Submission, CompetitionSettings })
 
     console.log('🎉 Database initialized successfully!')
   } catch (error) {
@@ -52,7 +52,7 @@ export default defineNitroPlugin(async nitroApp => {
   }
 })
 
-async function autoSeedDatabase(sequelize: any, { User, Team, Task, Submission }: any) {
+async function autoSeedDatabase(sequelize: any, { User, Team, Task, Submission, CompetitionSettings }: any) {
   try {
     // Check if database needs seeding
     const [userCount, taskCount] = await Promise.all([User.count(), Task.count()])

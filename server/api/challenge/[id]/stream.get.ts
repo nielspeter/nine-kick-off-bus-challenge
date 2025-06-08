@@ -29,15 +29,15 @@ export default defineEventHandler(async event => {
     setResponseStatus(event, 200)
 
     console.log(`🔗 SSE connection established for submission: ${submissionId}`)
-    
+
     const user = session.user as any // Type assertion to access id field
-    
+
     let counter = 0
     const sendEvent = (data: any) => {
       event.node.res.write(`id: ${++counter}\n`)
       event.node.res.write(`data: ${JSON.stringify(data)}\n\n`)
     }
-    
+
     // Send initial connection message immediately
     sendEvent({
       type: 'connected',

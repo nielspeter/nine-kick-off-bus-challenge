@@ -25,7 +25,7 @@ export function useRealtimeChallenge(submissionId: string) {
           const data = JSON.parse(event.data)
           console.log('📨 SSE message received:', data)
           handleMessage(data)
-          
+
           // Mark as connected when we receive the first message
           if (!isConnected.value) {
             isConnected.value = true
@@ -39,11 +39,11 @@ export function useRealtimeChallenge(submissionId: string) {
       eventSource.onerror = error => {
         console.error('❌ SSE connection error:', error)
         console.log('EventSource readyState:', eventSource.readyState)
-        
+
         // Only set to false if the connection is actually closed
         if (eventSource.readyState === EventSource.CLOSED) {
           isConnected.value = false
-          
+
           // Attempt to reconnect after 3 seconds
           setTimeout(() => {
             console.log('🔄 Attempting to reconnect...')
