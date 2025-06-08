@@ -5,7 +5,7 @@ services:
     container_name: nine-kickoff-db-dev
     environment:
       POSTGRES_USER: nineuser
-      POSTGRES_PASSWORD: nineuser
+      POSTGRES_PASSWORD: ninepass
       POSTGRES_DB: kickoff_challenge
     ports:
       - "5432:5432"

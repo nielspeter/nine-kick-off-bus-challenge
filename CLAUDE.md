@@ -55,8 +55,13 @@ The application implements a team-based competition system with:
    - Self-paced progression (one active challenge per team)
    - Submit-to-proceed workflow
 
-3. **Key Features to Implement**
-   - Google SSO authentication
+3. **Authentication System**
+   - Dual authentication modes via `AUTH_MODE` environment variable
+   - Google SSO for production (`AUTH_MODE=google`)
+   - Fake auth for development (`AUTH_MODE=fake`)
+   - Uses @sidebase/nuxt-auth with NextAuth.js backend
+
+4. **Key Features to Implement**
    - Real-time team status updates
    - Challenge selection and submission
    - Admin interface for manual judging post-event
@@ -76,3 +81,52 @@ PRD specifies PostgreSQL with Sequelize ORM (not yet implemented). Key entities:
 - Focus on mobile-first design as primary usage will be on smartphones during bus ride
 - Real-time features suggested for team updates and leaderboard
 - Manual judging system required (no automated scoring)
+
+## Available Tools for Claude Code
+
+When working on this project, Claude Code has access to:
+
+### Browser Testing
+- **Playwright MCP** - Can interact with the running application in a browser
+  - Navigate to pages, fill forms, click buttons
+  - Take screenshots and inspect page content
+  - Test authentication flows and user interactions
+  - Useful for debugging frontend issues and testing functionality
+
+### Container Management  
+- **Docker MCP** - Can manage Docker containers and inspect logs
+  - List running containers and their status
+  - Fetch container logs to debug server-side issues
+  - Monitor application health and troubleshoot deployment issues
+  - Useful for debugging authentication, database connections, and server errors
+
+These tools enable comprehensive testing and debugging of both frontend and backend functionality without requiring manual browser testing.
+
+## Authentication Configuration
+
+The application uses **@sidebase/nuxt-auth** with dual authentication modes:
+
+### Environment Variables
+- `AUTH_MODE=fake` - Development mode with user selection dropdown
+- `AUTH_MODE=google` - Production mode with Google OAuth
+- `AUTH_ORIGIN=http://localhost:3000/api/auth` - Auth endpoint base URL
+- `AUTH_SECRET` - Required for JWT token encryption
+
+### Fake Authentication (Development)
+- **Purpose**: Easy testing without Google OAuth setup
+- **Access**: Visit `/auth/signin` in development mode
+- **Usage**: Select any user from dropdown and click "Sign In as Selected User"
+- **Direct Access**: Visit `/api/auth/signin/fake-auth` and enter user ID (e.g., `user_anv`)
+- **User IDs**: All follow pattern `user_xxx` where xxx is the 3-letter identifier
+
+### Google Authentication (Production)
+- **Purpose**: Secure production authentication
+- **Requirements**: Google OAuth client ID and secret
+- **Restriction**: Only @nine.dk email addresses allowed
+- **Configuration**: Set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` environment variables
+
+### Technical Implementation
+- **Handler**: `~/server/api/auth/[...].ts` - NextAuth.js configuration
+- **Session Management**: JWT tokens with 30-day expiration
+- **Frontend Integration**: `useAuth()` composable for session access
+- **Middleware**: `~/middleware/auth.ts` protects routes (currently disabled globally)

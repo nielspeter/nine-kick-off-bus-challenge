@@ -58,18 +58,43 @@
 
           <!-- User Menu -->
           <div class="flex items-center space-x-4">
-            <!-- Mock user for now -->
-            <div class="hidden md:flex items-center space-x-2">
-              <div class="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-sm font-medium">
-                A
+            <!-- Current user -->
+            <div v-if="user" class="hidden md:flex items-center space-x-2">
+              <img 
+                v-if="(user as any).picture" 
+                :src="(user as any).picture" 
+                :alt="(user as any).name"
+                class="w-8 h-8 rounded-full"
+              >
+              <div 
+                v-else 
+                class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-medium"
+              >
+                {{ (user as any).name?.charAt(0) || '?' }}
               </div>
-              <span class="text-gray-700">Aku</span>
+              <span class="text-gray-700">{{ (user as any).name }}</span>
+              <button 
+                class="text-gray-500 hover:text-gray-700 text-sm"
+                @click="logout"
+              >
+                Logout
+              </button>
+            </div>
+            
+            <!-- Login button when not authenticated -->
+            <div v-else class="hidden md:flex">
+              <NuxtLink 
+                to="/auth/signin"
+                class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+              >
+                Sign In
+              </NuxtLink>
             </div>
             
             <!-- Mobile menu button -->
             <button 
-              @click="showMobileMenu = !showMobileMenu"
               class="md:hidden p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100"
+              @click="showMobileMenu = !showMobileMenu"
             >
               <Icon name="heroicons:bars-3" class="w-6 h-6" />
             </button>
@@ -121,6 +146,42 @@
             >
               Admin
             </NuxtLink>
+            
+            <!-- Mobile User Info -->
+            <div v-if="user" class="border-t pt-2 mt-2">
+              <div class="px-3 py-2 flex items-center space-x-2">
+                <img 
+                  v-if="(user as any).picture" 
+                  :src="(user as any).picture" 
+                  :alt="(user as any).name"
+                  class="w-6 h-6 rounded-full"
+                >
+                <div 
+                  v-else 
+                  class="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-medium"
+                >
+                  {{ (user as any).name?.charAt(0) || '?' }}
+                </div>
+                <span class="text-gray-700 text-sm">{{ (user as any).name }}</span>
+              </div>
+              <button 
+                class="w-full text-left px-3 py-2 text-red-600 hover:bg-red-50 rounded-md"
+                @click="logout"
+              >
+                Logout
+              </button>
+            </div>
+            
+            <!-- Mobile Login -->
+            <div v-else class="border-t pt-2 mt-2">
+              <NuxtLink 
+                to="/auth/signin"
+                class="block px-3 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-md text-center"
+                @click="showMobileMenu = false"
+              >
+                Sign In
+              </NuxtLink>
+            </div>
           </div>
         </div>
       </div>
@@ -145,10 +206,17 @@
 
 <script setup lang="ts">
 const showMobileMenu = ref(false)
+const { data: session, signOut } = useAuth()
+const user = computed(() => session.value?.user)
 
 // Close mobile menu when route changes
 const route = useRoute()
 watch(() => route.path, () => {
   showMobileMenu.value = false
 })
+
+async function logout() {
+  await signOut()
+  await navigateTo('/auth/signin')
+}
 </script>

@@ -10,8 +10,8 @@ export default defineNuxtConfig({
     '@nuxt/image',
     '@nuxt/test-utils',
     '@nuxtjs/tailwindcss',
-    // '@sidebase/nuxt-auth', // Temporarily disabled to fix session issue
-    '@pinia/nuxt'
+    '@pinia/nuxt',
+    '@sidebase/nuxt-auth'
   ],
 
   typescript: {
@@ -27,21 +27,15 @@ export default defineNuxtConfig({
     plugins: ['~/server/plugins/database.ts']
   },
 
-  // auth: {
-  //   baseURL: process.env.AUTH_ORIGIN || 'http://localhost:3000',
-  //   provider: {
-  //     type: 'authjs'
-  //   },
-  //   sessionRefresh: {
-  //     enablePeriodically: false,
-  //     enableOnWindowFocus: true
-  //   },
-  //   globalAppMiddleware: {
-  //     isEnabled: false,
-  //     allow404WithoutAuth: true,
-  //     addDefaultCallbackUrl: true
-  //   }
-  // },
+  auth: {
+    baseURL: process.env.AUTH_ORIGIN || 'http://localhost:3000/api/auth',
+    provider: {
+      type: 'authjs'
+    },
+    globalAppMiddleware: {
+      isEnabled: false
+    }
+  },
 
   runtimeConfig: {
     databaseUrl: process.env.DATABASE_URL,
@@ -53,7 +47,8 @@ export default defineNuxtConfig({
     googleClientSecret: process.env.GOOGLE_CLIENT_SECRET,
     public: {
       authUrl: process.env.AUTH_ORIGIN || 'http://localhost:3000',
-      siteUrl: process.env.NUXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+      siteUrl: process.env.NUXT_PUBLIC_SITE_URL || 'http://localhost:3000',
+      authMode: process.env.AUTH_MODE || 'fake' // 'fake' or 'google'
     }
   }
 })

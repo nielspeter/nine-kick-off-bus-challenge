@@ -34,9 +34,9 @@ export default defineNitroPlugin(async () => {
     await sequelize.sync({ alter: true })
     console.log('Database models synchronized')
 
-    // Make sequelize available globally in Nitro
-    await useStorage().setItem('db:sequelize', sequelize)
-    console.log('✅ Sequelize instance stored successfully')
+    // Store sequelize instance globally
+    globalThis.__sequelize = sequelize
+    console.log('✅ Database singleton connection established')
   } catch (error) {
     console.error('Unable to connect to the database:', error)
   }
