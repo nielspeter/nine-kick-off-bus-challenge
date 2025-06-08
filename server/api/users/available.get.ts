@@ -4,17 +4,18 @@ export default defineEventHandler(async _event => {
   try {
     const sequelize = await getDatabase()
 
-    // Use raw query with singleton connection
+    // Use raw query to get users not already in teams
     const [results] = await sequelize.query(`
       SELECT 
-        id,
-        name,
-        email,
-        picture,
-        role
-      FROM "Users"
-      ORDER BY name ASC
-      LIMIT 50
+        u.id,
+        u.name,
+        u.email,
+        u.picture,
+        u.role
+      FROM "Users" u
+      LEFT JOIN "TeamMembers" tm ON u.id = tm."UserId"
+      WHERE tm."UserId" IS NULL
+      ORDER BY u.name ASC
     `)
 
     return {
