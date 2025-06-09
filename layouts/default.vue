@@ -7,7 +7,6 @@
           <!-- Logo -->
           <NuxtLink to="/" class="flex items-center space-x-2">
             <div class="text-2xl font-bold text-primary">Nine</div>
-            <div class="text-xl text-gray-600">KickOff Bus Challenge</div>
           </NuxtLink>
 
           <!-- Navigation Links -->

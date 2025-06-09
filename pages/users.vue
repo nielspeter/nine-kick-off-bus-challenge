@@ -94,7 +94,6 @@
                   </div>
                   <div>
                     <div class="font-medium">{{ user.name }}</div>
-                    <div class="text-sm text-gray-500">{{ user.id }}</div>
                   </div>
                 </div>
               </td>

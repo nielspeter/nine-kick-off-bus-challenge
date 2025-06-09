@@ -126,7 +126,6 @@
                 />
               </div>
               <!-- Debug role -->
-              <div class="text-xs mt-1 opacity-50">[Role: {{ message.role }}]</div>
               <div class="text-xs opacity-70 mt-1">
                 {{ formatTime(message.timestamp) }}
                 <span v-if="message.model" class="ml-2"> • {{ getModelName(message.model) }} </span>
