@@ -134,11 +134,19 @@
               </div>
             </div>
 
-            <div
-              v-if="message.role === 'user'"
-              class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0 text-white"
-            >
-              {{ message.user?.name?.charAt(0) || '👤' }}
+            <div v-if="message.role === 'user'" class="flex-shrink-0">
+              <img
+                v-if="message.user?.image"
+                :src="message.user.image"
+                :alt="message.user.name"
+                class="w-8 h-8 rounded-full"
+              />
+              <div
+                v-else
+                class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-medium"
+              >
+                {{ getUserInitials(message.user?.name) }}
+              </div>
             </div>
           </div>
 
@@ -377,6 +385,18 @@ function formatTime(timestamp: string) {
 function getModelName(modelId: string) {
   const model = availableModels.value.find(m => m.id === modelId)
   return model?.name || modelId || 'AI'
+}
+
+function getUserInitials(name?: string) {
+  if (!name) return '👤'
+  const nameParts = name.trim().split(' ')
+  if (nameParts.length === 1) {
+    return nameParts[0].charAt(0).toUpperCase()
+  }
+  // Get first letter of first name and first letter of last name
+  const firstInitial = nameParts[0].charAt(0).toUpperCase()
+  const lastInitial = nameParts[nameParts.length - 1].charAt(0).toUpperCase()
+  return firstInitial + lastInitial
 }
 
 async function sendMessage() {
