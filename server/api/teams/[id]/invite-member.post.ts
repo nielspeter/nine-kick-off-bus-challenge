@@ -22,17 +22,16 @@ export default defineEventHandler(async event => {
       })
     }
 
-    const config = useRuntimeConfig()
-    const { Sequelize, QueryTypes } = await import('sequelize')
+    const { getDatabase } = await import('~/server/utils/db')
+    const { QueryTypes } = await import('sequelize')
     const { initModels } = await import('~/server/models')
 
-    const sequelize = new Sequelize(config.databaseUrl, { logging: false })
+    const sequelize = await getDatabase()
     const { User, Team } = initModels(sequelize)
 
     // Find the team
     const team = await Team.findByPk(teamId)
     if (!team) {
-      await sequelize.close()
       throw createError({
         statusCode: 404,
         statusMessage: 'Team not found',
@@ -42,7 +41,6 @@ export default defineEventHandler(async event => {
     // Find the requesting user (captain)
     const requestingUser = await User.findOne({ where: { email: session.user.email } })
     if (!requestingUser) {
-      await sequelize.close()
       throw createError({
         statusCode: 404,
         statusMessage: 'Requesting user not found',
@@ -51,7 +49,6 @@ export default defineEventHandler(async event => {
 
     // Verify that the requesting user is the team captain
     if (team.captainId !== requestingUser.id) {
-      await sequelize.close()
       throw createError({
         statusCode: 403,
         statusMessage: 'Only team captains can invite members',
@@ -61,7 +58,6 @@ export default defineEventHandler(async event => {
     // Find the user to invite
     const userToInvite = await User.findOne({ where: { email: userEmail } })
     if (!userToInvite) {
-      await sequelize.close()
       throw createError({
         statusCode: 404,
         statusMessage: 'User to invite not found',
@@ -75,7 +71,6 @@ export default defineEventHandler(async event => {
     )
 
     if (existingMembership.length > 0) {
-      await sequelize.close()
       throw createError({
         statusCode: 400,
         statusMessage: 'User is already a member of a team',
@@ -89,7 +84,6 @@ export default defineEventHandler(async event => {
     )
 
     if ((teamMemberCount[0] as any).count >= 4) {
-      await sequelize.close()
       throw createError({
         statusCode: 400,
         statusMessage: 'Team is full (maximum 4 members)',
@@ -117,8 +111,6 @@ export default defineEventHandler(async event => {
         },
       ],
     })
-
-    await sequelize.close()
 
     return {
       success: true,

@@ -410,16 +410,6 @@ Task.hasMany(Submission)
 
 #### 7.2 Nuxt 3 Server Routes
 ```typescript
-// server/api/teams/index.post.ts
-export default defineEventHandler(async (event) => {
-  const body = await readBody(event)
-  const team = await Team.create({
-    name: body.name,
-    captainId: body.captainId
-  })
-  return team
-})
-
 // server/api/teams/[id]/members.post.ts
 export default defineEventHandler(async (event) => {
   const teamId = getRouterParam(event, 'id')

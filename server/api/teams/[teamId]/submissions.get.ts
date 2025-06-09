@@ -9,17 +9,15 @@ export default defineEventHandler(async event => {
       })
     }
 
-    const config = useRuntimeConfig()
-    const { Sequelize } = await import('sequelize')
+    const { getDatabase } = await import('~/server/utils/db')
     const { initModels } = await import('~/server/models')
 
-    const sequelize = new Sequelize(config.databaseUrl, { logging: false })
+    const sequelize = await getDatabase()
     const { Submission, Task, Team } = initModels(sequelize)
 
     // Verify team exists
     const team = await Team.findByPk(teamId)
     if (!team) {
-      await sequelize.close()
       throw createError({
         statusCode: 404,
         statusMessage: 'Team not found',
@@ -38,8 +36,6 @@ export default defineEventHandler(async event => {
       ],
       order: [['createdAt', 'DESC']],
     })
-
-    await sequelize.close()
 
     return {
       success: true,

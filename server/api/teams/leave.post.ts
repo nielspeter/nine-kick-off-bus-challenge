@@ -30,17 +30,15 @@ export default defineEventHandler(async event => {
       })
     }
 
-    const config = useRuntimeConfig()
-    const { Sequelize } = await import('sequelize')
+    const { getDatabase } = await import('~/server/utils/db')
     const { initModels } = await import('~/server/models')
 
-    const sequelize = new Sequelize(config.databaseUrl, { logging: false })
+    const sequelize = await getDatabase()
     const { User, Team } = initModels(sequelize)
 
     // Find user
     const user = await User.findOne({ where: { email: userEmail } })
     if (!user) {
-      await sequelize.close()
       throw createError({
         statusCode: 404,
         statusMessage: 'User not found',
@@ -50,7 +48,6 @@ export default defineEventHandler(async event => {
     // Find team
     const team = await Team.findByPk(teamId)
     if (!team) {
-      await sequelize.close()
       throw createError({
         statusCode: 404,
         statusMessage: 'Team not found',
@@ -66,7 +63,6 @@ export default defineEventHandler(async event => {
       )
 
       if ((memberCount[0] as any).count > 1 && !forceDisband) {
-        await sequelize.close()
         throw createError({
           statusCode: 400,
           statusMessage:
@@ -81,8 +77,6 @@ export default defineEventHandler(async event => {
       })
 
       await Team.destroy({ where: { id: teamId } })
-
-      await sequelize.close()
 
       const message = forceDisband
         ? 'Team disbanded successfully (all members removed)'
@@ -115,8 +109,6 @@ export default defineEventHandler(async event => {
         },
       ],
     })
-
-    await sequelize.close()
 
     return {
       success: true,

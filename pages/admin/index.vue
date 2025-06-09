@@ -340,13 +340,6 @@
                     {{ submission.rating ? `${submission.rating}/5` : 'Not rated' }}
                   </div>
                 </div>
-
-                <button
-                  class="bg-primary text-white px-3 py-1 rounded text-sm hover:bg-primary/90"
-                  @click="reviewSubmission(submission)"
-                >
-                  Review
-                </button>
               </div>
             </div>
 
@@ -662,11 +655,6 @@ function formatDate(dateString: string) {
 function viewTeamDetails(team: any) {
   selectedTeam.value = team
   showTeamDetailsModal.value = true
-}
-
-function reviewSubmission(submission: any) {
-  // TODO: Implement submission review modal
-  console.log('Review submission:', submission)
 }
 
 // Rating functions

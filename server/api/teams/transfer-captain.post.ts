@@ -12,17 +12,15 @@ export default defineEventHandler(async event => {
       })
     }
 
-    const config = useRuntimeConfig()
-    const { Sequelize } = await import('sequelize')
+    const { getDatabase } = await import('~/server/utils/db')
     const { initModels } = await import('~/server/models')
 
-    const sequelize = new Sequelize(config.databaseUrl, { logging: false })
+    const sequelize = await getDatabase()
     const { User, Team } = initModels(sequelize)
 
     // Find current captain
     const currentCaptain = await User.findOne({ where: { email: currentCaptainEmail } })
     if (!currentCaptain) {
-      await sequelize.close()
       throw createError({
         statusCode: 404,
         statusMessage: 'Current captain not found',
@@ -32,7 +30,6 @@ export default defineEventHandler(async event => {
     // Find team
     const team = await Team.findByPk(teamId)
     if (!team) {
-      await sequelize.close()
       throw createError({
         statusCode: 404,
         statusMessage: 'Team not found',
@@ -41,7 +38,6 @@ export default defineEventHandler(async event => {
 
     // Verify current user is the captain
     if (team.captainId !== currentCaptain.id) {
-      await sequelize.close()
       throw createError({
         statusCode: 403,
         statusMessage: 'Only the current captain can transfer captaincy',
@@ -51,7 +47,6 @@ export default defineEventHandler(async event => {
     // Find new captain
     const newCaptain = await User.findByPk(newCaptainId)
     if (!newCaptain) {
-      await sequelize.close()
       throw createError({
         statusCode: 404,
         statusMessage: 'New captain not found',
@@ -65,7 +60,6 @@ export default defineEventHandler(async event => {
     )
 
     if (membershipCheck.length === 0) {
-      await sequelize.close()
       throw createError({
         statusCode: 400,
         statusMessage: 'New captain must be a member of the team',
@@ -96,8 +90,6 @@ export default defineEventHandler(async event => {
         },
       ],
     })
-
-    await sequelize.close()
 
     return {
       success: true,

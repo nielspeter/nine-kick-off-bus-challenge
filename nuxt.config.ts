@@ -40,7 +40,6 @@ export default defineNuxtConfig({
     experimental: {
       websocket: true,
     },
-    plugins: ['~/server/plugins/database.ts'],
   },
 
   auth: {

@@ -27,7 +27,12 @@ async function initializeDatabase(): Promise<Sequelize> {
     throw new Error('DATABASE_URL not configured')
   }
 
+  console.log('🚀 Database initialization starting...')
+  console.log('📝 DATABASE_URL found, initializing database...')
+
   const { Sequelize } = await import('sequelize')
+  const { initModels } = await import('~/server/models')
+
   const instance = new Sequelize(config.databaseUrl, {
     logging: false,
     dialectOptions: {
@@ -43,6 +48,16 @@ async function initializeDatabase(): Promise<Sequelize> {
 
   // Test the connection
   await instance.authenticate()
+  console.log('Database connection established successfully')
+
+  // Initialize models
+  initModels(instance)
+  console.log('Database models initialized')
+
+  // Sync models with database (create tables if they don't exist)
+  await instance.sync({ alter: false })
+  console.log('Database models synchronized')
+
   console.log('✅ Database singleton connection established')
 
   return instance

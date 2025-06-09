@@ -22,11 +22,11 @@ export default defineEventHandler(async event => {
       })
     }
 
-    const config = useRuntimeConfig()
-    const { Sequelize, QueryTypes } = await import('sequelize')
+    const { getDatabase } = await import('~/server/utils/db')
+    const { QueryTypes } = await import('sequelize')
     const { initModels } = await import('~/server/models')
 
-    const sequelize = new Sequelize(config.databaseUrl, { logging: false })
+    const sequelize = await getDatabase()
     const { User, Team } = initModels(sequelize)
 
     // Find the team
@@ -41,7 +41,6 @@ export default defineEventHandler(async event => {
     })
 
     if (!team) {
-      await sequelize.close()
       throw createError({
         statusCode: 404,
         statusMessage: 'Team not found',
@@ -51,7 +50,6 @@ export default defineEventHandler(async event => {
     // Find the requesting user
     const requestingUser = await User.findOne({ where: { email: session.user.email } })
     if (!requestingUser) {
-      await sequelize.close()
       throw createError({
         statusCode: 404,
         statusMessage: 'Requesting user not found',
@@ -60,7 +58,6 @@ export default defineEventHandler(async event => {
 
     // Verify that the requesting user is the team captain
     if (team.captainId !== requestingUser.id) {
-      await sequelize.close()
       throw createError({
         statusCode: 403,
         statusMessage: 'Only team captains can remove members',
@@ -70,7 +67,6 @@ export default defineEventHandler(async event => {
     // Find the user to remove
     const userToRemove = await User.findOne({ where: { email: userEmail } })
     if (!userToRemove) {
-      await sequelize.close()
       throw createError({
         statusCode: 404,
         statusMessage: 'User not found',
@@ -80,7 +76,6 @@ export default defineEventHandler(async event => {
     // Check if user is a member of this team
     const isMember = team.members?.some(member => member.id === userToRemove.id)
     if (!isMember) {
-      await sequelize.close()
       throw createError({
         statusCode: 400,
         statusMessage: 'User is not a member of this team',
@@ -89,7 +84,6 @@ export default defineEventHandler(async event => {
 
     // Cannot remove the captain
     if (userToRemove.id === team.captainId) {
-      await sequelize.close()
       throw createError({
         statusCode: 400,
         statusMessage: 'Cannot remove team captain. Transfer captaincy first.',
@@ -117,8 +111,6 @@ export default defineEventHandler(async event => {
         },
       ],
     })
-
-    await sequelize.close()
 
     return {
       success: true,

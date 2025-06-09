@@ -205,8 +205,11 @@ export function initModels(sequelize: Sequelize) {
         allowNull: false,
       },
       status: {
-        type: DataTypes.ENUM('in_progress', 'completed'),
+        type: DataTypes.STRING(50),
         defaultValue: 'in_progress',
+        validate: {
+          isIn: [['in_progress', 'completed']],
+        },
       },
       chatHistory: {
         type: DataTypes.JSON,
