@@ -566,6 +566,16 @@ function scrollToBottom() {
   })
 }
 
+function handleAnswerUpdate(event: CustomEvent) {
+  const updateData = event.detail
+  console.log('📝 Handling answer update:', updateData)
+
+  if (updateData.type === 'submission_completed' && updateData.submissionId === submissionId) {
+    // Refresh the submission data to show the completed state
+    fetchSubmission()
+  }
+}
+
 async function fetchSubmission() {
   loading.value = true
   error.value = ''
@@ -597,10 +607,14 @@ onMounted(() => {
 
   // Listen for real-time chat message events
   window.addEventListener('chat-message-added', scrollToBottom)
+
+  // Listen for answer update events
+  window.addEventListener('answer-updated', handleAnswerUpdate)
 })
 
 onUnmounted(() => {
   window.removeEventListener('chat-message-added', scrollToBottom)
+  window.removeEventListener('answer-updated', handleAnswerUpdate)
 })
 
 // Auto-scroll when new messages arrive

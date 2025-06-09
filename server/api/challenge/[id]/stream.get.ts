@@ -105,6 +105,22 @@ export default defineEventHandler(async event => {
 
         // Add user to active users set in Redis with a simple key
         const activeUsersKey = `challenge:${submissionId}:active`
+
+        // First, clean up any existing entries for this user
+        const existingUsers = await redisClient.sMembers(activeUsersKey)
+        for (const userStr of Array.from(existingUsers)) {
+          try {
+            const userData = JSON.parse(userStr as string)
+            if (userData.id === user.id) {
+              await redisClient.sRem(activeUsersKey, userStr as string)
+            }
+          } catch (e) {
+            // Invalid JSON, remove it
+            await redisClient.sRem(activeUsersKey, userStr as string)
+          }
+        }
+
+        // Add fresh entry for this user
         const userInfo = {
           id: user.id,
           name: user.name,
@@ -112,6 +128,7 @@ export default defineEventHandler(async event => {
           lastSeen: Date.now(),
         }
         await redisClient.sAdd(activeUsersKey, JSON.stringify(userInfo))
+        console.log(`➕ User ${user.name} (${user.id}) added to active users`)
 
         // Set expiration for the active users key (auto cleanup after 1 hour of inactivity)
         await redisClient.expire(activeUsersKey, 3600)
@@ -166,18 +183,22 @@ export default defineEventHandler(async event => {
 
           // Get all members and find the one matching this user ID
           const activeUsersList = await redisClient.sMembers(activeUsersKey)
+          let removedCount = 0
           for (const userStr of Array.from(activeUsersList)) {
             try {
               const userData = JSON.parse(userStr as string)
               if (userData.id === user.id) {
                 await redisClient.sRem(activeUsersKey, userStr as string)
-                break
+                removedCount++
               }
             } catch (e) {
               // Invalid JSON, remove it
               await redisClient.sRem(activeUsersKey, userStr as string)
             }
           }
+          console.log(
+            `➖ User ${user.name} (${user.id}) removed from active users (${removedCount} entries)`
+          )
 
           await redisClient.publish(
             `challenge:${submissionId}:activity`,

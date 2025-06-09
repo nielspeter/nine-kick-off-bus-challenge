@@ -166,6 +166,7 @@ export function useRealtimeChallenge(submissionId: string) {
 
       case 'answer_update':
         // Handle real-time final answer updates
+        console.log('📝 Answer update received:', data.data)
         window.dispatchEvent(
           new CustomEvent('answer-updated', {
             detail: data.data,

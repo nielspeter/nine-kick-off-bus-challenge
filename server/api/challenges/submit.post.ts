@@ -1,6 +1,7 @@
 import { getServerSession } from '#auth'
 import { getDatabase } from '~/server/utils/db'
 import { initModels } from '~/server/models'
+import { getRedisClient } from '~/server/utils/redis'
 
 export default defineEventHandler(async event => {
   try {
@@ -73,6 +74,37 @@ export default defineEventHandler(async event => {
       finalAnswers,
       submittedAt: new Date(),
     })
+
+    // Broadcast submission update to team members via Redis
+    try {
+      const redisClient = await getRedisClient()
+      await redisClient.publish(
+        `challenge:${submissionId}:answer`,
+        JSON.stringify({
+          type: 'submission_completed',
+          submissionId,
+          finalAnswers,
+          submittedAt: new Date().toISOString(),
+          submittedBy: {
+            id: session.user.id,
+            name: session.user.name,
+            email: session.user.email,
+          },
+          task: {
+            title: submission.task.title,
+            category: submission.task.category,
+          },
+          team: {
+            name: submission.team.name,
+          },
+          timestamp: new Date().toISOString(),
+        })
+      )
+      console.log(`📢 Broadcasted submission completion for ${submissionId}`)
+    } catch (redisError) {
+      console.error('Failed to broadcast submission completion:', redisError)
+      // Don't fail the submission if Redis is unavailable
+    }
 
     return {
       success: true,
