@@ -1,5 +1,7 @@
 # Nine KickOff Bus Challenge
 
+![Nine KickOff Bus Challenge](screenshot.png)
+
 An AI creativity competition platform where teams compete using AI to solve challenges across different professional domains during the annual Nine bus trip.
 
 ## 🚀 Quick Start with Docker
