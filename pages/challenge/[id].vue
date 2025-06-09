@@ -103,7 +103,7 @@
             <div
               v-if="message.role === 'assistant'"
               class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0"
-              :title="getModelName(message.provider)"
+              :title="getModelName(message.model)"
             >
               🤖
             </div>
@@ -122,9 +122,7 @@
               <div class="text-xs mt-1 opacity-50">[Role: {{ message.role }}]</div>
               <div class="text-xs opacity-70 mt-1">
                 {{ formatTime(message.timestamp) }}
-                <span v-if="message.provider" class="ml-2">
-                  • {{ getModelName(message.provider) }}
-                </span>
+                <span v-if="message.model" class="ml-2"> • {{ getModelName(message.model) }} </span>
               </div>
             </div>
 
@@ -170,12 +168,13 @@
           </div>
           <form v-else class="flex flex-col sm:flex-row gap-2" @submit.prevent="sendMessage">
             <select
-              v-model="selectedProvider"
+              v-model="selectedModel"
               class="border rounded-lg px-3 py-2 bg-white"
               :disabled="isTyping"
             >
-              <option value="openai">GPT-4</option>
-              <option value="claude">Claude</option>
+              <option v-for="model in availableModels" :key="model.id" :value="model.id">
+                {{ model.name }}
+              </option>
             </select>
             <input
               v-model="newMessage"
@@ -300,7 +299,8 @@ const error = ref('')
 const submission = ref(null)
 const chatHistory = ref([])
 const newMessage = ref('')
-const selectedProvider = ref('openai')
+const selectedModel = ref('')
+const availableModels = ref([])
 const isTyping = ref(false)
 const finalAnswer = ref('')
 const showSubmitModal = ref(false)
@@ -341,15 +341,9 @@ function formatTime(timestamp: string) {
   return new Date(timestamp).toLocaleString()
 }
 
-function getModelName(provider: string) {
-  switch (provider) {
-    case 'openai':
-      return 'GPT-4'
-    case 'claude':
-      return 'Claude 3 Sonnet'
-    default:
-      return provider || 'AI'
-  }
+function getModelName(modelId: string) {
+  const model = availableModels.value.find(m => m.id === modelId)
+  return model?.name || modelId || 'AI'
 }
 
 async function sendMessage() {
@@ -382,7 +376,7 @@ async function sendMessage() {
       body: {
         submissionId,
         message,
-        provider: selectedProvider.value,
+        model: selectedModel.value,
       },
     })
 
@@ -452,6 +446,29 @@ async function fetchCompetitionState() {
   }
 }
 
+async function fetchAvailableModels() {
+  try {
+    const response = await $fetch('/api/ai/models')
+    availableModels.value = response.models
+    // Set default model to first available model
+    if (response.models.length > 0 && !selectedModel.value) {
+      selectedModel.value = response.models[0].id
+    }
+  } catch (error) {
+    console.error('Failed to fetch available models:', error)
+    // Fallback to default models if API fails
+    availableModels.value = [
+      { id: 'gpt-4o-mini', name: 'GPT-4o Mini' },
+      { id: 'gpt-4o', name: 'GPT-4o' },
+      { id: 'claude-3-5-sonnet', name: 'Claude 3.5 Sonnet' },
+      { id: 'claude-3-5-haiku', name: 'Claude 3.5 Haiku' },
+    ]
+    if (!selectedModel.value) {
+      selectedModel.value = availableModels.value[0].id
+    }
+  }
+}
+
 function scrollToBottom() {
   nextTick(() => {
     if (chatContainer.value) {
@@ -487,6 +504,7 @@ async function fetchSubmission() {
 onMounted(() => {
   fetchSubmission()
   fetchCompetitionState()
+  fetchAvailableModels()
 
   // Listen for real-time chat message events
   window.addEventListener('chat-message-added', scrollToBottom)

@@ -6,7 +6,7 @@ services:
     environment:
       POSTGRES_USER: nineuser
       POSTGRES_PASSWORD: ninepass
-      POSTGRES_DB: kickoff_challenge
+      POSTGRES_DB: postgres  # Default database
     ports:
       - "5432:5432"
     volumes:
@@ -77,6 +77,34 @@ services:
       - nine-network
     stdin_open: true
     tty: true
+
+  # LiteLLM Proxy for AI Model Management
+  litellm:
+    image: ghcr.io/berriai/litellm:v1.71.1-stable
+    container_name: nine-kickoff-litellm-dev
+    ports:
+      - "4000:4000"  # LiteLLM proxy port
+    environment:
+      # API Keys (set these in your .env file)
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${CLAUDE_API_KEY:-}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+      # LiteLLM Admin Settings
+      - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY:-sk-1234567890abcdef}
+      - LITELLM_SALT_KEY=my-super-secret-salt
+      - DATABASE_URL=postgresql://nineuser:ninepass@postgres:5432/litellm
+      - STORE_MODEL_IN_DB=True
+    volumes:
+      - ./litellm-config.yaml:/app/config.yaml:ro
+    command: ["--config", "/app/config.yaml", "--detailed_debug"]
+    networks:
+      - nine-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:4000').read()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   # Adminer for database management
   adminer:

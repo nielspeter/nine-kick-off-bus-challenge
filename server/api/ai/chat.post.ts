@@ -2,6 +2,7 @@ import { getServerSession } from '#auth'
 import { getRedisClient } from '~/server/utils/redis'
 import { getDatabase } from '~/server/utils/db'
 import { initModels } from '~/server/models'
+import OpenAI from 'openai'
 
 export default defineEventHandler(async event => {
   try {
@@ -20,7 +21,7 @@ export default defineEventHandler(async event => {
     console.log('✅ User session verified:', session.user.email)
 
     const body = await readBody(event)
-    const { submissionId, message, provider = 'openai' } = body
+    const { submissionId, message, model = 'gpt-4o-mini' } = body
 
     if (!submissionId || !message) {
       console.log('❌ Missing required fields:', { submissionId, message: !!message })
@@ -30,9 +31,8 @@ export default defineEventHandler(async event => {
       })
     }
 
-    console.log('📝 Request data:', { submissionId, provider, messageLength: message.length })
+    console.log('📝 Request data:', { submissionId, model, messageLength: message.length })
 
-    const config = useRuntimeConfig()
     console.log('📊 Getting database connection...')
     const sequelize = await getDatabase()
     console.log('✅ Database connection acquired')
@@ -116,12 +116,21 @@ export default defineEventHandler(async event => {
       // Don't fail the request if Redis is unavailable
     }
 
-    // Prepare AI request based on provider
-    let aiResponse
+    // Initialize LiteLLM OpenAI-compatible client
+    const config = useRuntimeConfig()
+    const masterKey = config.litellmMasterKey || 'sk-1234567890abcdef'
+    const litellm = new OpenAI({
+      baseURL: 'http://litellm:4000/v1', // Point to LiteLLM proxy
+      apiKey: masterKey, // Use master key from config
+      defaultHeaders: {
+        Authorization: `Bearer ${masterKey}`,
+      },
+    })
+
     const team = (submission as any).team
     const task = (submission as any).task
 
-    console.log('🤖 Preparing AI request for provider:', provider)
+    console.log('🤖 Preparing AI request for model:', model)
 
     const systemPrompt = `You are an AI assistant helping Team "${team.name}" with the "${task.title}" challenge in the "${task.category}" category.
 
@@ -139,126 +148,51 @@ You should:
 
 Remember: This is a creativity competition, so focus on innovative and unique approaches!`
 
-    if (provider === 'openai' && config.openaiApiKey) {
-      // OpenAI API call
-      console.log('🔑 Making OpenAI API call...')
-      try {
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${config.openaiApiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'gpt-4',
-            messages: [
-              { role: 'system', content: systemPrompt },
-              ...(submission.chatHistory as any[]),
-              { role: 'user', content: userMessage.content },
-            ],
-            temperature: 0.8,
-          }),
-        })
-
-        console.log('📡 OpenAI API response status:', response.status)
-        console.log('📡 OpenAI API response ok:', response.ok)
-
-        if (!response.ok) {
-          const errorText = await response.text()
-          console.error('❌ OpenAI API error details:', {
-            status: response.status,
-            statusText: response.statusText,
-            body: errorText,
-          })
-
-          // Return a user-friendly error message instead of throwing
-          let userErrorMessage = 'Sorry, the AI service is currently unavailable.'
-          if (response.status === 429) {
-            userErrorMessage =
-              'The AI service is currently rate limited. Please try again in a moment.'
-          } else if (response.status === 401) {
-            userErrorMessage = 'AI service authentication failed. Please contact support.'
-          } else if (response.status >= 500) {
-            userErrorMessage =
-              'The AI service is experiencing technical difficulties. Please try again later.'
-          }
-
-          aiResponse = `⚠️ ${userErrorMessage}`
-        } else {
-          const data = await response.json()
-          console.log('✅ OpenAI API response received, choices length:', data.choices?.length)
-          aiResponse = data.choices[0].message.content
-          console.log('✅ AI response extracted, length:', aiResponse?.length)
-        }
-      } catch (fetchError) {
-        console.error('❌ OpenAI API fetch error:', fetchError)
-        aiResponse =
-          '⚠️ Sorry, there was a network error connecting to the AI service. Please try again.'
-      }
-    } else if (provider === 'claude' && config.claudeApiKey) {
-      // Claude API call
-      console.log('🔑 Making Claude API call...')
-      try {
-        const response = await fetch('https://api.anthropic.com/v1/messages', {
-          method: 'POST',
-          headers: {
-            'x-api-key': config.claudeApiKey,
-            'anthropic-version': '2023-06-01',
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'claude-3-sonnet-20240229',
-            system: systemPrompt,
-            messages: [
-              ...(submission.chatHistory as any[]),
-              { role: 'user', content: userMessage.content },
-            ],
-          }),
-        })
-
-        console.log('📡 Claude API response status:', response.status)
-        console.log('📡 Claude API response ok:', response.ok)
-
-        if (!response.ok) {
-          const errorText = await response.text()
-          console.error('❌ Claude API error details:', {
-            status: response.status,
-            statusText: response.statusText,
-            body: errorText,
-          })
-
-          // Return a user-friendly error message instead of throwing
-          let userErrorMessage = 'Sorry, the AI service is currently unavailable.'
-          if (response.status === 429) {
-            userErrorMessage =
-              'The AI service is currently rate limited. Please try again in a moment.'
-          } else if (response.status === 401) {
-            userErrorMessage = 'AI service authentication failed. Please contact support.'
-          } else if (response.status >= 500) {
-            userErrorMessage =
-              'The AI service is experiencing technical difficulties. Please try again later.'
-          }
-
-          aiResponse = `⚠️ ${userErrorMessage}`
-        } else {
-          const data = await response.json()
-          console.log('✅ Claude API response received, content length:', data.content?.length)
-          aiResponse = data.content[0].text
-          console.log('✅ AI response extracted, length:', aiResponse?.length)
-        }
-      } catch (fetchError) {
-        console.error('❌ Claude API fetch error:', fetchError)
-        aiResponse =
-          '⚠️ Sorry, there was a network error connecting to the AI service. Please try again.'
-      }
-    } else {
-      console.error('❌ AI provider not available:', {
-        provider,
-        hasOpenAIKey: !!config.openaiApiKey,
-        hasClaudeKey: !!config.claudeApiKey,
+    let aiResponse
+    console.log('🔑 Making LiteLLM API call...')
+    try {
+      const response = await litellm.chat.completions.create({
+        model: model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          ...(submission.chatHistory as any[]),
+          { role: 'user', content: userMessage.content },
+        ],
+        temperature: 0.8,
+        max_tokens: 4096,
       })
-      aiResponse =
-        '⚠️ The requested AI provider is not available. Please try switching to a different provider or contact support.'
+
+      console.log('✅ LiteLLM API response received')
+      aiResponse = response.choices[0].message.content
+      console.log('✅ AI response extracted, length:', aiResponse?.length)
+    } catch (litellmError) {
+      console.error('❌ LiteLLM API error:', litellmError)
+
+      // Handle specific error types
+      let userErrorMessage = 'Sorry, the AI service is currently unavailable.'
+      if (litellmError instanceof Error) {
+        if (litellmError.message.includes('rate limit')) {
+          userErrorMessage =
+            'The AI service is currently rate limited. Please try again in a moment.'
+        } else if (
+          litellmError.message.includes('authentication') ||
+          litellmError.message.includes('401')
+        ) {
+          userErrorMessage = 'AI service authentication failed. Please contact support.'
+        } else if (
+          litellmError.message.includes('timeout') ||
+          litellmError.message.includes('network')
+        ) {
+          userErrorMessage = 'Network error connecting to the AI service. Please try again.'
+        } else if (
+          litellmError.message.includes('model') ||
+          litellmError.message.includes('not found')
+        ) {
+          userErrorMessage = `The selected model "${model}" is not available. Please try a different model.`
+        }
+      }
+
+      aiResponse = `⚠️ ${userErrorMessage}`
     }
 
     // Create assistant message
@@ -267,7 +201,7 @@ Remember: This is a creativity competition, so focus on innovative and unique ap
       role: 'assistant',
       content: aiResponse,
       timestamp: new Date().toISOString(),
-      provider,
+      model,
     }
 
     // Update chat history with both messages
@@ -305,7 +239,7 @@ Remember: This is a creativity competition, so focus on innovative and unique ap
     return {
       success: true,
       response: aiResponse,
-      provider,
+      model,
       chatHistory: updatedChatHistory,
     }
   } catch (error: unknown) {

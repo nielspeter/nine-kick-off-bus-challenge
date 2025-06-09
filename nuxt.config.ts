@@ -58,6 +58,7 @@ export default defineNuxtConfig({
     redisUrl: process.env.REDIS_URL,
     openaiApiKey: process.env.OPENAI_API_KEY,
     claudeApiKey: process.env.CLAUDE_API_KEY,
+    litellmMasterKey: process.env.LITELLM_MASTER_KEY,
     authSecret: process.env.AUTH_SECRET,
     googleClientId: process.env.GOOGLE_CLIENT_ID,
     googleClientSecret: process.env.GOOGLE_CLIENT_SECRET,
