@@ -359,35 +359,6 @@
           </div>
         </div>
       </div>
-
-      <!-- Leaderboard Tab -->
-      <div v-if="activeTab === 'leaderboard'" class="p-4 md:p-6">
-        <h2 class="text-xl font-semibold mb-4">Competition Leaderboard</h2>
-        <div class="space-y-3">
-          <div
-            v-for="(team, index) in leaderboard"
-            :key="team.id"
-            class="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
-          >
-            <div class="flex items-center gap-4">
-              <div class="text-2xl font-bold text-gray-400">#{{ index + 1 }}</div>
-              <div>
-                <div class="font-semibold">{{ team.name }}</div>
-                <div class="text-sm text-gray-600">{{ team.members?.length || 0 }} members</div>
-              </div>
-            </div>
-            <div class="text-right">
-              <div class="text-xl font-bold text-primary">
-                {{ team.totalScore }}
-              </div>
-              <div class="text-sm text-gray-600">total score</div>
-              <div class="text-xs text-gray-500 mt-1">
-                {{ team.completedCount }} completed × {{ team.avgRating || 'unrated' }}⭐
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
 
     <!-- Loading State -->
@@ -665,23 +636,11 @@ const tabs = [
   { id: 'teams', label: 'Teams' },
   { id: 'tasks', label: 'Tasks' },
   { id: 'submissions', label: 'Submissions' },
-  { id: 'leaderboard', label: 'Leaderboard' },
 ]
 
 const completedSubmissions = computed(() =>
   submissions.value.filter(sub => sub.status === 'completed')
 )
-
-const leaderboard = computed(() => {
-  return teams.value
-    .map(team => ({
-      ...team,
-      completedCount: getTeamCompletedCount(team.id),
-      avgRating: getTeamAvgRating(team.id),
-      totalScore: calculateTeamScore(team.id),
-    }))
-    .sort((a, b) => b.totalScore - a.totalScore)
-})
 
 function getTeamCompletedCount(teamId: string) {
   return submissions.value.filter(sub => sub.teamId === teamId && sub.status === 'completed').length
@@ -694,22 +653,6 @@ function getTeamActiveCount(teamId: string) {
 
 function getTaskSubmissionCount(taskId: string) {
   return submissions.value.filter(sub => sub.taskId === taskId).length
-}
-
-function getTeamAvgRating(teamId: string) {
-  const teamSubmissions = submissions.value.filter(
-    sub => sub.teamId === teamId && sub.status === 'completed' && sub.rating !== null
-  )
-  if (teamSubmissions.length === 0) return 0
-  const sum = teamSubmissions.reduce((acc, sub) => acc + (sub.rating || 0), 0)
-  return parseFloat((sum / teamSubmissions.length).toFixed(1))
-}
-
-function calculateTeamScore(teamId: string) {
-  const completedCount = getTeamCompletedCount(teamId)
-  const avgRating = getTeamAvgRating(teamId)
-  const qualityMultiplier = avgRating > 0 ? avgRating : completedCount > 0 ? 3 : 0
-  return parseFloat((completedCount * qualityMultiplier).toFixed(1))
 }
 
 function formatDate(dateString: string) {

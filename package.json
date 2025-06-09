@@ -10,6 +10,10 @@
     "postinstall": "nuxt prepare",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "docker:dev": "docker-compose -f docker-compose.dev.yml up -d",
     "docker:down": "docker-compose -f docker-compose.dev.yml down",
     "docker:reset": "docker-compose -f docker-compose.dev.yml down -v && docker-compose -f docker-compose.dev.yml up -d",
@@ -43,10 +47,13 @@
   },
   "devDependencies": {
     "@iconify-json/heroicons": "^1.2.2",
+    "@vitest/ui": "^3.2.2",
     "eslint-config-prettier": "^10.1.5",
     "eslint-plugin-prettier": "^5.4.1",
+    "happy-dom": "^17.6.3",
     "prettier": "^3.5.3",
     "typescript": "^5.8.3",
+    "vitest": "^3.2.2",
     "vue-tsc": "^2.2.10"
   }
 }

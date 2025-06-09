@@ -2,11 +2,12 @@ export default defineEventHandler(async event => {
   try {
     const { getDatabase } = await import('~/server/utils/db')
     const { initModels } = await import('~/server/models')
+    const { calculateTeamScore, formatScoreDisplay } = await import('~/server/utils/scoring')
 
     const sequelize = await getDatabase()
-    const { Team, User, Submission } = initModels(sequelize)
+    const { Team, User, Submission, Task } = initModels(sequelize)
 
-    // Get all teams with their completed submissions count
+    // Get all teams with their members
     const teams = await Team.findAll({
       include: [
         {
@@ -25,14 +26,21 @@ export default defineEventHandler(async event => {
 
     console.log(`📊 Found ${teams.length} teams for leaderboard calculation`)
 
-    // Get submission data for each team including ratings
-    const leaderboard = await Promise.all(
+    // Get submission data for each team including task difficulty and ratings
+    const teamScores = await Promise.all(
       teams.map(async team => {
         const completedSubmissions = await Submission.findAll({
           where: {
             teamId: team.id,
             status: 'completed',
           },
+          include: [
+            {
+              model: Task,
+              as: 'task',
+              attributes: ['title', 'difficulty'],
+            },
+          ],
           attributes: ['id', 'rating'],
         })
 
@@ -43,37 +51,33 @@ export default defineEventHandler(async event => {
           },
         })
 
-        // Calculate quality metrics
-        const completedCount = completedSubmissions.length
-        const ratedSubmissions = completedSubmissions.filter(
-          sub => sub.rating !== null && sub.rating !== undefined
+        // Calculate team score using new scoring module
+        const teamScore = calculateTeamScore(
+          completedSubmissions.map(sub => ({
+            id: sub.id,
+            task: {
+              title: (sub as any).task.title,
+              difficulty: (sub as any).task.difficulty,
+            },
+            rating: sub.rating,
+          }))
         )
-        const avgRating =
-          ratedSubmissions.length > 0
-            ? ratedSubmissions.reduce((sum, sub) => {
-                const rating = parseFloat(String(sub.rating || 0))
-                return sum + rating
-              }, 0) / ratedSubmissions.length
-            : 0
 
-        // Quality-adjusted score: completedCount × avgRating
-        // If no ratings yet, use completedCount × 3 (neutral score)
-        const qualityMultiplier = avgRating > 0 ? avgRating : completedCount > 0 ? 3 : 0
-        const totalScore = parseFloat((completedCount * qualityMultiplier).toFixed(1))
+        // Set team info
+        teamScore.teamId = team.id
+        teamScore.teamName = team.name
 
-        // Debug logging for rating issues
+        // Get formatted display text
+        const display = formatScoreDisplay(teamScore)
+
+        // Debug logging for scoring
         if (team.name) {
           console.log(
-            `Team ${team.name}: completed=${completedCount}, ratedSubs=${ratedSubmissions.length}, avgRating=${avgRating}, qualityMultiplier=${qualityMultiplier}, totalScore=${totalScore}`
+            `Team ${team.name}: completed=${teamScore.completedCount}, rated=${teamScore.ratedCount}, totalScore=${teamScore.totalScore}`
           )
-          if (completedSubmissions.length > 0) {
+          if (teamScore.submissions.length > 0) {
             console.log(
-              `  All submissions ratings: ${completedSubmissions.map(sub => `${sub.rating} (${typeof sub.rating})`).join(', ')}`
-            )
-          }
-          if (ratedSubmissions.length > 0) {
-            console.log(
-              `  Filtered rated submissions: ${ratedSubmissions.map(sub => sub.rating).join(', ')}`
+              `  Submissions: ${teamScore.submissions.map(s => `${s.taskTitle}(D${s.difficulty}×${s.rating}⭐=${s.score}pts)`).join(', ')}`
             )
           }
         }
@@ -83,33 +87,39 @@ export default defineEventHandler(async event => {
           name: team.name,
           captain: team.captain,
           memberCount: team.members?.length || 0,
-          completedChallenges: completedCount,
+          completedChallenges: teamScore.completedCount,
           activeChallenges: inProgressCount,
-          avgRating: parseFloat(avgRating.toFixed(1)),
-          ratedSubmissions: ratedSubmissions.length,
-          totalScore,
+          avgRating: teamScore.averageRating,
+          avgDifficulty: teamScore.averageDifficulty,
+          ratedSubmissions: teamScore.ratedCount,
+          unratedSubmissions: teamScore.unratedCount,
+          totalScore: teamScore.totalScore,
+          scoreBreakdown: display.breakdown,
+          scoreDetails: display.details,
           lastActivity: team.updatedAt,
+          // Include detailed submission breakdown for debugging
+          submissions: teamScore.submissions,
         }
       })
     )
 
-    // Sort by total score (descending), then by completed challenges, then by last activity
-    leaderboard.sort((a, b) => {
+    // Sort teams by total score (manually since the function expects different type)
+    teamScores.sort((a, b) => {
       if (a.totalScore !== b.totalScore) {
         return b.totalScore - a.totalScore
       }
       if (a.completedChallenges !== b.completedChallenges) {
         return b.completedChallenges - a.completedChallenges
       }
-      return new Date(b.lastActivity).getTime() - new Date(a.lastActivity).getTime()
+      return b.avgRating - a.avgRating
     })
 
-    console.log(`📈 Returning ${leaderboard.length} teams in leaderboard`)
-    console.log('Final leaderboard:', leaderboard.map(t => `${t.name}: ${t.totalScore}`).join(', '))
+    console.log(`📈 Returning ${teamScores.length} teams in leaderboard`)
+    console.log('Final leaderboard:', teamScores.map(t => `${t.name}: ${t.totalScore}`).join(', '))
 
     return {
       success: true,
-      leaderboard,
+      leaderboard: teamScores,
       lastUpdated: new Date().toISOString(),
     }
   } catch (error: any) {
