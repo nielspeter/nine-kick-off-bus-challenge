@@ -3,6 +3,23 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-05-15',
   devtools: { enabled: true },
 
+  app: {
+    head: {
+      title: 'Nine KickOff Bus Challenge',
+      meta: [
+        {
+          name: 'description',
+          content: 'AI creativity competition platform for Nine team members',
+        },
+      ],
+      link: [
+        { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg?v=2' },
+        { rel: 'shortcut icon', href: '/favicon.svg?v=2' },
+        { rel: 'apple-touch-icon', href: '/favicon.svg?v=2' },
+      ],
+    },
+  },
+
   modules: [
     '@nuxt/eslint',
     '@nuxt/fonts',
