@@ -15,7 +15,7 @@ An AI creativity competition platform where teams compete using AI to solve chal
 ### 1. Clone and Setup
 
 ```bash
-git clone <repository-url>
+git clone git@github.com:nielspeter/nine-kick-off-bus-challenge.git
 cd NineKickOffBusChallenge
 
 # Install dependencies (needed for seed script)
@@ -176,6 +176,9 @@ docker-compose -f docker-compose.dev.yml exec postgres psql -U nineuser -d kicko
 
 # Backup current database
 docker-compose -f docker-compose.dev.yml exec postgres pg_dump -U nineuser kickoff_challenge > backup.sql
+
+# Manually set users as admin (required after seeding)
+docker-compose -f docker-compose.dev.yml exec postgres psql -U nineuser -d kickoff_challenge -c "UPDATE \"Users\" SET \"isAdmin\" = true WHERE email IN ('admin@nine.dk', 'another-admin@nine.dk');"
 ```
 
 ### Code Quality
