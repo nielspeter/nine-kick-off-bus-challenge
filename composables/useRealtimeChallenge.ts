@@ -3,6 +3,7 @@ export function useRealtimeChallenge(submissionId: string) {
   const activeUsers = ref<any[]>([])
   const isConnected = ref(false)
   const lastActivity = ref<string | null>(null)
+  const streamingMessage = ref<any | null>(null)
 
   let eventSource: EventSource | null = null
 
@@ -75,7 +76,7 @@ export function useRealtimeChallenge(submissionId: string) {
         break
 
       case 'chat_message':
-        // Update chat history with new message
+        // Handle different types of chat messages including streaming events
         if (data.data.type === 'message') {
           const message = data.data.message
 
@@ -89,6 +90,61 @@ export function useRealtimeChallenge(submissionId: string) {
 
           if (!exists) {
             chatHistory.value = [...chatHistory.value, message]
+
+            // Emit event for auto-scroll
+            nextTick(() => {
+              window.dispatchEvent(new CustomEvent('chat-message-added'))
+            })
+          }
+        } else if (data.data.type === 'stream_start') {
+          // AI streaming started from another team member
+          if (data.data.data.submissionId === submissionId) {
+            streamingMessage.value = {
+              role: 'assistant',
+              content: '',
+              timestamp: data.data.data.timestamp,
+              model: data.data.data.model,
+              isStreaming: true,
+            }
+
+            // Add streaming placeholder to chat history
+            chatHistory.value = [...chatHistory.value, streamingMessage.value]
+
+            // Emit event for auto-scroll
+            nextTick(() => {
+              window.dispatchEvent(new CustomEvent('chat-message-added'))
+            })
+          }
+        } else if (data.data.type === 'stream_chunk') {
+          // AI streaming content chunk from another team member
+          if (data.data.data.submissionId === submissionId && streamingMessage.value) {
+            streamingMessage.value.content += data.data.data.content
+
+            // Emit event for auto-scroll
+            nextTick(() => {
+              window.dispatchEvent(new CustomEvent('chat-message-added'))
+            })
+          }
+        } else if (data.data.type === 'stream_complete') {
+          // AI streaming completed from another team member
+          if (data.data.data.submissionId === submissionId && streamingMessage.value) {
+            // Replace streaming message with final assistant message
+            const finalMessage = {
+              ...data.data.data.assistantMessage,
+              isStreaming: false,
+            }
+
+            // Find and replace the streaming message
+            const streamingIndex = chatHistory.value.findIndex(m => m.isStreaming)
+            if (streamingIndex !== -1) {
+              chatHistory.value = [
+                ...chatHistory.value.slice(0, streamingIndex),
+                finalMessage,
+                ...chatHistory.value.slice(streamingIndex + 1),
+              ]
+            }
+
+            streamingMessage.value = null
 
             // Emit event for auto-scroll
             nextTick(() => {
@@ -221,6 +277,7 @@ export function useRealtimeChallenge(submissionId: string) {
     activeUsers: readonly(activeUsers),
     isConnected: readonly(isConnected),
     lastActivity: readonly(lastActivity),
+    streamingMessage: readonly(streamingMessage),
 
     // Methods
     connect,

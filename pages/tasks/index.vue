@@ -65,7 +65,7 @@
         :key="category"
         class="bg-white rounded-lg shadow-md overflow-hidden"
       >
-        <div class="bg-gradient-to-r from-blue-600 to-blue-500 text-white p-4 md:p-6">
+        <div class="bg-gradient-to-r p-4 md:p-6">
           <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-0">
             <div>
               <h2 class="text-2xl font-bold">{{ category }}</h2>

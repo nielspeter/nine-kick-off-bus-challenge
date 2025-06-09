@@ -110,19 +110,27 @@
 
             <div
               class="max-w-3xl px-4 py-2 rounded-lg"
-              :class="
-                message.role === 'user' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-900'
-              "
+              :class="[
+                message.role === 'user' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-900',
+                message.isStreaming ? 'animate-pulse' : '',
+              ]"
             >
               <div v-if="message.role === 'user' && message.user" class="text-xs opacity-70 mb-1">
                 {{ message.user.name }}
               </div>
-              <div class="whitespace-pre-wrap">{{ message.content }}</div>
+              <div class="whitespace-pre-wrap">
+                {{ message.content }}
+                <span
+                  v-if="message.isStreaming"
+                  class="inline-block w-2 h-4 bg-gray-400 animate-pulse ml-1"
+                />
+              </div>
               <!-- Debug role -->
               <div class="text-xs mt-1 opacity-50">[Role: {{ message.role }}]</div>
               <div class="text-xs opacity-70 mt-1">
                 {{ formatTime(message.timestamp) }}
                 <span v-if="message.model" class="ml-2"> • {{ getModelName(message.model) }} </span>
+                <span v-if="message.isStreaming" class="ml-2 text-green-600"> • Streaming... </span>
               </div>
             </div>
 
@@ -134,7 +142,7 @@
             </div>
           </div>
 
-          <div v-if="isTyping" class="flex gap-3 justify-start">
+          <div v-if="isTyping && !hasStreamingMessage" class="flex gap-3 justify-start">
             <div
               class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0"
             >
@@ -170,7 +178,7 @@
             <select
               v-model="selectedModel"
               class="border rounded-lg px-3 py-2 bg-white"
-              :disabled="isTyping"
+              :disabled="isTyping || hasStreamingMessage"
             >
               <option v-for="model in availableModels" :key="model.id" :value="model.id">
                 {{ model.name }}
@@ -179,14 +187,20 @@
             <input
               v-model="newMessage"
               type="text"
-              placeholder="Ask AI for help with this challenge..."
+              :placeholder="
+                hasStreamingMessage
+                  ? 'AI is responding... Please wait'
+                  : isTyping
+                    ? 'Sending your message...'
+                    : 'Ask AI for help with this challenge...'
+              "
               class="flex-1 border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary min-w-0"
-              :disabled="isTyping"
+              :disabled="isTyping || hasStreamingMessage"
             />
             <button
               type="submit"
-              :disabled="!newMessage.trim() || isTyping"
-              class="bg-primary text-white px-6 py-2 rounded-lg hover:bg-primary/90 disabled:opacity-50"
+              :disabled="!newMessage.trim() || isTyping || hasStreamingMessage"
+              class="bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed transition-colors"
             >
               Send
             </button>
@@ -292,6 +306,7 @@ const {
   isConnected,
   updateChatHistory,
   publishTyping,
+  streamingMessage,
 } = useRealtimeChallenge(submissionId)
 
 const loading = ref(true)
@@ -313,18 +328,36 @@ const isCompetitionPaused = computed(() => {
 
 // Merge local and real-time chat history
 const displayChatHistory = computed(() => {
-  // If local chat has more recent messages (user just sent something), prefer local
-  // Otherwise use real-time chat history for synchronized view
+  // Strategy: Use local chat when user is actively sending messages (includes local streaming)
+  // Use real-time chat for collaborative viewing of other team members' messages
   const localLength = chatHistory.value.length
   const realtimeLength = realtimeChatHistory.value.length
 
-  // Use local if it has more messages (user just sent something)
-  // or if real-time is empty
-  if (localLength > realtimeLength || realtimeLength === 0) {
+  // If user is actively typing or just sent a message, prioritize local
+  // This ensures the sender sees their own streaming responses
+  if (isTyping.value || localLength > realtimeLength) {
     return chatHistory.value
   }
 
-  return realtimeChatHistory.value
+  // Otherwise, use real-time chat for collaborative viewing
+  if (realtimeLength > 0) {
+    return realtimeChatHistory.value
+  }
+
+  // Fall back to local chat history if real-time is not available
+  return chatHistory.value
+})
+
+// Check if there's currently a streaming message in the displayed chat history
+const hasStreamingMessage = computed(() => {
+  const hasStreaming = displayChatHistory.value.some(message => message.isStreaming === true)
+  if (hasStreaming) {
+    console.log(
+      'Streaming message detected:',
+      displayChatHistory.value.filter(m => m.isStreaming)
+    )
+  }
+  return hasStreaming
 })
 
 function getDifficultyText(difficulty: number) {
@@ -353,42 +386,107 @@ async function sendMessage() {
   newMessage.value = ''
   isTyping.value = true
 
-  // Add user message immediately to chat history for instant feedback
-  const user = session.value?.user as any // Type assertion to access id field
-  const userMessage = {
-    role: 'user',
-    content: message,
+  // Create a streaming AI response placeholder for local display
+  const localStreamingMessage = {
+    role: 'assistant',
+    content: '',
     timestamp: new Date().toISOString(),
-    user: {
-      id: user?.id,
-      name: user?.name,
-      email: user?.email,
-    },
+    model: selectedModel.value,
+    isStreaming: true,
   }
 
-  // Add to local chat history immediately
-  chatHistory.value = [...chatHistory.value, userMessage]
-  scrollToBottom()
-
   try {
-    const response = await $fetch('/api/ai/chat', {
+    // Send the message and process streaming response locally
+    const response = await fetch('/api/ai/chat', {
       method: 'POST',
-      body: {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
         submissionId,
         message,
         model: selectedModel.value,
-      },
+      }),
     })
 
-    // Update with complete chat history from server (includes AI response)
-    chatHistory.value = response.chatHistory
-    scrollToBottom()
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const reader = response.body?.getReader()
+    const decoder = new TextDecoder()
+
+    if (!reader) {
+      throw new Error('Response body is not readable')
+    }
+
+    let buffer = ''
+
+    while (true) {
+      const { done, value } = await reader.read()
+
+      if (done) break
+
+      buffer += decoder.decode(value, { stream: true })
+
+      // Process complete SSE messages
+      const lines = buffer.split('\n')
+      buffer = lines.pop() || '' // Keep incomplete line in buffer
+
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          try {
+            const data = JSON.parse(line.slice(6))
+
+            switch (data.type) {
+              case 'user_message': {
+                // Add user message immediately to local chat
+                chatHistory.value = [...chatHistory.value, data.message]
+                scrollToBottom()
+                break
+              }
+              case 'stream_start': {
+                // Add streaming placeholder for local display
+                chatHistory.value = [...chatHistory.value, localStreamingMessage]
+                scrollToBottom()
+                break
+              }
+              case 'stream_chunk': {
+                // Update the local streaming message content
+                const lastMessage = chatHistory.value[chatHistory.value.length - 1]
+                if (lastMessage && lastMessage.isStreaming) {
+                  lastMessage.content += data.content
+                  localStreamingMessage.content += data.content
+                  scrollToBottom()
+                }
+                break
+              }
+              case 'stream_complete': {
+                // Replace local streaming message with final assistant message
+                chatHistory.value = data.chatHistory
+                scrollToBottom()
+                break
+              }
+              case 'error': {
+                console.error('Stream error:', data.message)
+                alert('AI Error: ' + data.message)
+                // Remove streaming placeholder if it exists
+                chatHistory.value = chatHistory.value.filter(m => !m.isStreaming)
+                return
+              }
+            }
+          } catch (parseError) {
+            console.error('Error parsing SSE data:', parseError)
+          }
+        }
+      }
+    }
   } catch (error) {
     console.error('Failed to send message:', error)
     alert('Failed to send message: ' + error.message)
 
-    // Remove the user message from chat if API call failed
-    chatHistory.value = chatHistory.value.filter(m => m !== userMessage)
+    // Remove streaming placeholder if it exists
+    chatHistory.value = chatHistory.value.filter(m => !m.isStreaming)
   } finally {
     isTyping.value = false
   }
@@ -449,23 +547,14 @@ async function fetchCompetitionState() {
 async function fetchAvailableModels() {
   try {
     const response = await $fetch('/api/ai/models')
-    availableModels.value = response.models
-    // Set default model to first available model
-    if (response.models.length > 0 && !selectedModel.value) {
-      selectedModel.value = response.models[0].id
+    // Sort models alphabetically by name
+    availableModels.value = response.models.sort((a, b) => a.name.localeCompare(b.name))
+    // Set default model to first available model after sorting
+    if (availableModels.value.length > 0 && !selectedModel.value) {
+      selectedModel.value = availableModels.value[0].id
     }
   } catch (error) {
     console.error('Failed to fetch available models:', error)
-    // Fallback to default models if API fails
-    availableModels.value = [
-      { id: 'gpt-4o-mini', name: 'GPT-4o Mini' },
-      { id: 'gpt-4o', name: 'GPT-4o' },
-      { id: 'claude-3-5-sonnet', name: 'Claude 3.5 Sonnet' },
-      { id: 'claude-3-5-haiku', name: 'Claude 3.5 Haiku' },
-    ]
-    if (!selectedModel.value) {
-      selectedModel.value = availableModels.value[0].id
-    }
   }
 }
 

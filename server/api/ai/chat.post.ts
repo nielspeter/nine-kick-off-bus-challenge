@@ -8,14 +8,19 @@ export default defineEventHandler(async event => {
   try {
     console.log('🎯 Chat API called')
 
+    // Set headers for SSE streaming
+    setHeader(event, 'Content-Type', 'text/event-stream')
+    setHeader(event, 'Cache-Control', 'no-cache')
+    setHeader(event, 'Connection', 'keep-alive')
+    setHeader(event, 'Access-Control-Allow-Origin', '*')
+    setHeader(event, 'Access-Control-Allow-Headers', 'Cache-Control')
+
     // Verify user session
     const session = await getServerSession(event)
     if (!session?.user?.email) {
       console.log('❌ No user session found')
-      throw createError({
-        statusCode: 401,
-        statusMessage: 'Authentication required',
-      })
+      const errorData = JSON.stringify({ error: 'Authentication required' })
+      return `event: error\ndata: ${errorData}\n\n`
     }
 
     console.log('✅ User session verified:', session.user.email)
@@ -25,10 +30,8 @@ export default defineEventHandler(async event => {
 
     if (!submissionId || !message) {
       console.log('❌ Missing required fields:', { submissionId, message: !!message })
-      throw createError({
-        statusCode: 400,
-        statusMessage: 'Submission ID and message are required',
-      })
+      const errorData = JSON.stringify({ error: 'Submission ID and message are required' })
+      return `event: error\ndata: ${errorData}\n\n`
     }
 
     console.log('📝 Request data:', { submissionId, model, messageLength: message.length })
@@ -148,10 +151,18 @@ You should:
 
 Remember: This is a creativity competition, so focus on innovative and unique approaches!`
 
-    let aiResponse
-    console.log('🔑 Making LiteLLM API call...')
+    // Send user message immediately via SSE
+    const userData = JSON.stringify({
+      type: 'user_message',
+      message: userMessage,
+    })
+    event.node.res.write(`event: message\ndata: ${userData}\n\n`)
+
+    let aiResponse = ''
+    console.log('🔑 Making LiteLLM streaming API call...')
+
     try {
-      const response = await litellm.chat.completions.create({
+      const stream = await litellm.chat.completions.create({
         model: model,
         messages: [
           { role: 'system', content: systemPrompt },
@@ -160,11 +171,79 @@ Remember: This is a creativity competition, so focus on innovative and unique ap
         ],
         temperature: 0.8,
         max_tokens: 4096,
+        stream: true,
       })
 
-      console.log('✅ LiteLLM API response received')
-      aiResponse = response.choices[0].message.content
-      console.log('✅ AI response extracted, length:', aiResponse?.length)
+      console.log('✅ LiteLLM streaming started')
+
+      // Send stream start event and publish to Redis for real-time collaboration
+      const startData = JSON.stringify({
+        type: 'stream_start',
+        model,
+        submissionId,
+        timestamp: new Date().toISOString(),
+      })
+      event.node.res.write(`event: stream_start\ndata: ${startData}\n\n`)
+
+      // Publish stream start to Redis for other team members
+      try {
+        const redisClient = await getRedisClient()
+        await redisClient.publish(
+          `challenge:${submissionId}:chat`,
+          JSON.stringify({
+            type: 'stream_start',
+            data: {
+              type: 'stream_start',
+              model,
+              submissionId,
+              timestamp: new Date().toISOString(),
+            },
+            submissionId,
+          })
+        )
+      } catch (redisError) {
+        console.error('Failed to publish stream start to Redis:', redisError)
+      }
+
+      // Process streaming response
+      for await (const chunk of stream) {
+        const content = chunk.choices[0]?.delta?.content
+        if (content) {
+          aiResponse += content
+
+          // Send each chunk via SSE to the chat initiator
+          const chunkData = JSON.stringify({
+            type: 'stream_chunk',
+            content,
+            submissionId,
+            timestamp: new Date().toISOString(),
+          })
+          event.node.res.write(`event: chunk\ndata: ${chunkData}\n\n`)
+
+          // Publish each chunk to Redis for real-time collaboration
+          try {
+            const redisClient = await getRedisClient()
+            await redisClient.publish(
+              `challenge:${submissionId}:chat`,
+              JSON.stringify({
+                type: 'stream_chunk',
+                data: {
+                  type: 'stream_chunk',
+                  content,
+                  submissionId,
+                  timestamp: new Date().toISOString(),
+                },
+                submissionId,
+              })
+            )
+          } catch (redisError) {
+            console.error('Failed to publish chunk to Redis:', redisError)
+            // Don't fail the stream if Redis is unavailable
+          }
+        }
+      }
+
+      console.log('✅ AI streaming response complete, total length:', aiResponse.length)
     } catch (litellmError) {
       console.error('❌ LiteLLM API error:', litellmError)
 
@@ -193,6 +272,13 @@ Remember: This is a creativity competition, so focus on innovative and unique ap
       }
 
       aiResponse = `⚠️ ${userErrorMessage}`
+
+      // Send error via SSE
+      const errorData = JSON.stringify({
+        type: 'error',
+        message: userErrorMessage,
+      })
+      event.node.res.write(`event: error\ndata: ${errorData}\n\n`)
     }
 
     // Create assistant message
@@ -217,31 +303,48 @@ Remember: This is a creativity competition, so focus on innovative and unique ap
       console.log('✅ Database update successful')
     } catch (dbError) {
       console.error('❌ Database update failed:', dbError)
-      throw dbError
+      const errorData = JSON.stringify({
+        type: 'error',
+        message: 'Failed to save chat history',
+      })
+      event.node.res.write(`event: error\ndata: ${errorData}\n\n`)
     }
 
-    // Publish AI response to Redis for real-time collaboration
+    // Note: AI response will be published via stream_complete event below
+    // No need to publish as a separate message to avoid duplication
+
+    // Send completion event with final data
+    const completionData = JSON.stringify({
+      type: 'stream_complete',
+      assistantMessage,
+      chatHistory: updatedChatHistory,
+      success: true,
+    })
+    event.node.res.write(`event: complete\ndata: ${completionData}\n\n`)
+
+    // Publish stream completion to Redis for real-time collaboration
     try {
       const redisClient = await getRedisClient()
       await redisClient.publish(
         `challenge:${submissionId}:chat`,
         JSON.stringify({
-          type: 'message',
-          message: assistantMessage,
+          type: 'stream_complete',
+          data: {
+            type: 'stream_complete',
+            assistantMessage,
+            submissionId,
+            timestamp: new Date().toISOString(),
+          },
           submissionId,
         })
       )
     } catch (redisError) {
-      console.error('Failed to publish AI response to Redis:', redisError)
+      console.error('Failed to publish stream completion to Redis:', redisError)
       // Don't fail the request if Redis is unavailable
     }
 
-    return {
-      success: true,
-      response: aiResponse,
-      model,
-      chatHistory: updatedChatHistory,
-    }
+    // Close the SSE connection
+    event.node.res.end()
   } catch (error: unknown) {
     console.error('💥 Chat API Error:', {
       error: error,
@@ -250,11 +353,16 @@ Remember: This is a creativity competition, so focus on innovative and unique ap
       type: typeof error,
     })
 
-    if (error && typeof error === 'object' && 'statusCode' in error) throw error
-
-    throw createError({
-      statusCode: 500,
-      statusMessage: error instanceof Error ? error.message : 'Failed to process AI chat',
-    })
+    // For SSE, send error event and close connection
+    try {
+      const errorData = JSON.stringify({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Failed to process AI chat',
+      })
+      event.node.res.write(`event: error\ndata: ${errorData}\n\n`)
+      event.node.res.end()
+    } catch (writeError) {
+      console.error('Failed to write error response:', writeError)
+    }
   }
 })
