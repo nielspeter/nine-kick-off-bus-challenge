@@ -37,6 +37,7 @@ export class Team extends Model<InferAttributes<Team>, InferCreationAttributes<T
   declare addUser: BelongsToManyAddAssociationMixin<User, User['id']>
   declare members?: User[]
   declare getMembers: HasManyGetAssociationsMixin<User>
+  declare captain?: User
 }
 
 export class Task extends Model<InferAttributes<Task>, InferCreationAttributes<Task>> {

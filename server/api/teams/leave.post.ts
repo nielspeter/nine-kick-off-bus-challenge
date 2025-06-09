@@ -1,4 +1,5 @@
 import { getServerSession } from '#auth'
+import { QueryTypes } from 'sequelize'
 
 export default defineEventHandler(async event => {
   try {
@@ -61,10 +62,10 @@ export default defineEventHandler(async event => {
       // Check if there are other members
       const memberCount = await sequelize.query(
         'SELECT COUNT(*) as count FROM "TeamMembers" WHERE "TeamId" = ?',
-        { replacements: [teamId], type: sequelize.QueryTypes.SELECT }
+        { replacements: [teamId], type: QueryTypes.SELECT }
       )
 
-      if (memberCount[0].count > 1 && !forceDisband) {
+      if ((memberCount[0] as any).count > 1 && !forceDisband) {
         await sequelize.close()
         throw createError({
           statusCode: 400,
@@ -76,7 +77,7 @@ export default defineEventHandler(async event => {
       // If captain is the only member OR forceDisband is true, delete the team
       await sequelize.query('DELETE FROM "TeamMembers" WHERE "TeamId" = ?', {
         replacements: [teamId],
-        type: sequelize.QueryTypes.DELETE,
+        type: QueryTypes.DELETE,
       })
 
       await Team.destroy({ where: { id: teamId } })
@@ -96,7 +97,7 @@ export default defineEventHandler(async event => {
     // Remove user from team
     await sequelize.query('DELETE FROM "TeamMembers" WHERE "TeamId" = ? AND "UserId" = ?', {
       replacements: [teamId, user.id],
-      type: sequelize.QueryTypes.DELETE,
+      type: QueryTypes.DELETE,
     })
 
     // Fetch updated team data

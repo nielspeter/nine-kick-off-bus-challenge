@@ -118,7 +118,9 @@ export default defineEventHandler(async event => {
 
         // Get current active users and send to new connection
         const activeUsersList = await redisClient.sMembers(activeUsersKey)
-        const activeUsers = activeUsersList.map(userStr => JSON.parse(userStr))
+        const activeUsers = Array.from(activeUsersList).map(userStr =>
+          JSON.parse(userStr as string)
+        )
 
         // Send current active users to the new connection immediately
         sendEvent({
@@ -164,16 +166,16 @@ export default defineEventHandler(async event => {
 
           // Get all members and find the one matching this user ID
           const activeUsersList = await redisClient.sMembers(activeUsersKey)
-          for (const userStr of activeUsersList) {
+          for (const userStr of Array.from(activeUsersList)) {
             try {
-              const userData = JSON.parse(userStr)
+              const userData = JSON.parse(userStr as string)
               if (userData.id === user.id) {
-                await redisClient.sRem(activeUsersKey, userStr)
+                await redisClient.sRem(activeUsersKey, userStr as string)
                 break
               }
             } catch (e) {
               // Invalid JSON, remove it
-              await redisClient.sRem(activeUsersKey, userStr)
+              await redisClient.sRem(activeUsersKey, userStr as string)
             }
           }
 

@@ -1,3 +1,5 @@
+import { QueryTypes } from 'sequelize'
+
 export default defineEventHandler(async event => {
   try {
     const body = await readBody(event)
@@ -59,7 +61,7 @@ export default defineEventHandler(async event => {
     // Verify new captain is a member of the team
     const membershipCheck = await sequelize.query(
       'SELECT * FROM "TeamMembers" WHERE "TeamId" = ? AND "UserId" = ?',
-      { replacements: [teamId, newCaptainId], type: sequelize.QueryTypes.SELECT }
+      { replacements: [teamId, newCaptainId], type: QueryTypes.SELECT }
     )
 
     if (membershipCheck.length === 0) {
@@ -76,7 +78,7 @@ export default defineEventHandler(async event => {
     // Remove current captain from team
     await sequelize.query('DELETE FROM "TeamMembers" WHERE "TeamId" = ? AND "UserId" = ?', {
       replacements: [teamId, currentCaptain.id],
-      type: sequelize.QueryTypes.DELETE,
+      type: QueryTypes.DELETE,
     })
 
     // Fetch updated team data
