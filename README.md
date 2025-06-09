@@ -43,37 +43,35 @@ AUTH_SECRET=your-secure-auth-secret-here
 NUXT_SESSION_PASSWORD=your-secure-session-password-here
 ```
 
-### 3. Start the Application
+### 3. Generate Seed Data
+
+```bash
+# Generate seed SQL from Nine.dk employee data
+node scripts/generate-seed-sql.mjs > init-db/seed.sql
+```
+
+### 4. Start the Application
 
 ```bash
 # Start all services (database, Redis, LiteLLM, application)
+# PostgreSQL will automatically import seed.sql during initialization
 docker-compose -f docker-compose.dev.yml up -d
 
 # Check all services are running
 docker-compose -f docker-compose.dev.yml ps
 ```
 
-### 4. Generate and Import Seed Data
-
-```bash
-# Generate seed SQL from Nine.dk employee data
-node scripts/generate-seed-sql.mjs > init-db/seed.sql
-
-# Import the seed data into database
-docker-compose -f docker-compose.dev.yml exec postgres psql -U nineuser -d kickoff_challenge -f /docker-entrypoint-initdb.d/seed.sql
-```
-
 ### 5. Access the Application
 
 - **Main Application**: http://localhost:3000
 - **Database Admin (Adminer)**: http://localhost:8080
-  - Server: `postgres`
-  - Username: `nineuser`
-  - Password: `ninepass`
-  - Database: `kickoff_challenge`
+    - Server: `postgres`
+    - Username: `nineuser`
+    - Password: `ninepass`
+    - Database: `kickoff_challenge`
 - **LiteLLM Proxy UI**: http://localhost:4000
-  - Username: `admin`
-  - Password: `admin123`
+    - Username: `admin`
+    - Password: `admin123`
 
 ## 🏗️ Architecture
 
@@ -88,13 +86,13 @@ docker-compose -f docker-compose.dev.yml exec postgres psql -U nineuser -d kicko
 
 ### Services
 
-| Service | Port | Description |
-|---------|------|-------------|
-| nuxt-app | 3000 | Main Nuxt.js application |
-| postgres | 5432 | PostgreSQL database |
-| redis | 6379 | Redis for real-time features |
-| adminer | 8080 | Database administration UI |
-| litellm | 4000 | LiteLLM proxy for AI models |
+| Service  | Port | Description                  |
+|----------|------|------------------------------|
+| nuxt-app | 3000 | Main Nuxt.js application     |
+| postgres | 5432 | PostgreSQL database          |
+| redis    | 6379 | Redis for real-time features |
+| adminer  | 8080 | Database administration UI   |
+| litellm  | 4000 | LiteLLM proxy for AI models  |
 
 ## 🎮 How to Use
 
@@ -152,7 +150,11 @@ docker-compose -f docker-compose.dev.yml logs postgres
 # Connect to database directly
 docker-compose -f docker-compose.dev.yml exec postgres psql -U nineuser -d kickoff_challenge
 
-# Reset database (DANGER: loses all data)
+# Restart services (keeps database data)
+docker-compose -f docker-compose.dev.yml down
+docker-compose -f docker-compose.dev.yml up -d
+
+# Reset database (DANGER: loses all data by removing volumes)
 docker-compose -f docker-compose.dev.yml down -v
 docker-compose -f docker-compose.dev.yml up -d
 ```
@@ -160,10 +162,14 @@ docker-compose -f docker-compose.dev.yml up -d
 ### Seed Data Management
 
 ```bash
-# Generate fresh seed data from Nine.dk
-node scripts/generate-seed-sql.mjs > new-seed.sql
+# Generate fresh seed data from Nine.dk (before starting containers)
+node scripts/generate-seed-sql.mjs > init-db/seed.sql
 
-# Apply seed data to running database
+# If containers are already running, restart to import new seed data
+docker-compose -f docker-compose.dev.yml down
+docker-compose -f docker-compose.dev.yml up -d
+
+# Or manually import to running database
 docker-compose -f docker-compose.dev.yml exec postgres psql -U nineuser -d kickoff_challenge -f /docker-entrypoint-initdb.d/seed.sql
 
 # Backup current database
@@ -241,6 +247,7 @@ docker-compose -f docker-compose.yml up -d
 ### Common Issues
 
 **Database Connection Failed**
+
 ```bash
 # Check if postgres is running
 docker-compose -f docker-compose.dev.yml ps postgres
@@ -250,6 +257,7 @@ docker-compose -f docker-compose.dev.yml logs postgres
 ```
 
 **Redis Connection Failed**
+
 ```bash
 # Check redis status
 docker-compose -f docker-compose.dev.yml ps redis
@@ -259,6 +267,7 @@ docker-compose -f docker-compose.dev.yml exec redis redis-cli ping
 ```
 
 **LiteLLM Not Working**
+
 ```bash
 # Check LiteLLM logs
 docker-compose -f docker-compose.dev.yml logs litellm
@@ -267,6 +276,7 @@ docker-compose -f docker-compose.dev.yml logs litellm
 ```
 
 **Seed Data Issues**
+
 ```bash
 # Re-generate seed data
 node scripts/generate-seed-sql.mjs > init-db/seed.sql
@@ -285,9 +295,9 @@ docker-compose -f docker-compose.dev.yml down -v
 rm -rf node_modules package-lock.json
 npm install
 
-# Start fresh
-docker-compose -f docker-compose.dev.yml up -d
+# Generate fresh seed data and start services
 node scripts/generate-seed-sql.mjs > init-db/seed.sql
+docker-compose -f docker-compose.dev.yml up -d
 ```
 
 ## 🤝 Contributing
