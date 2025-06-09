@@ -220,6 +220,83 @@
         </div>
       </div>
 
+      <!-- Tasks Tab -->
+      <div v-if="activeTab === 'tasks'" class="p-4 md:p-6">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-xl font-semibold">Tasks Management</h2>
+          <button
+            class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+            @click="showCreateTaskModal = true"
+          >
+            <Icon name="heroicons:plus" class="w-4 h-4 inline mr-1" />
+            Add Task
+          </button>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full">
+            <thead>
+              <tr class="border-b">
+                <th class="text-left py-2">Title</th>
+                <th class="text-left py-2">Category</th>
+                <th class="text-left py-2">Difficulty</th>
+                <th class="text-left py-2">Est. Time</th>
+                <th class="text-left py-2">Submissions</th>
+                <th class="text-left py-2">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="task in tasks" :key="task.id" class="border-b hover:bg-gray-50">
+                <td class="py-3 font-medium">{{ task.title }}</td>
+                <td class="py-3">
+                  <span class="bg-gray-100 text-gray-800 px-2 py-1 rounded text-sm">
+                    {{ task.category }}
+                  </span>
+                </td>
+                <td class="py-3">
+                  <div class="flex">
+                    <Icon
+                      v-for="i in task.difficulty"
+                      :key="i"
+                      name="heroicons:star-solid"
+                      class="w-4 h-4 text-yellow-400"
+                    />
+                    <Icon
+                      v-for="i in 3 - task.difficulty"
+                      :key="i"
+                      name="heroicons:star"
+                      class="w-4 h-4 text-gray-300"
+                    />
+                  </div>
+                </td>
+                <td class="py-3">{{ task.estimatedTime }}min</td>
+                <td class="py-3">
+                  <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">
+                    {{ getTaskSubmissionCount(task.id) }}
+                  </span>
+                </td>
+                <td class="py-3">
+                  <div class="flex gap-2">
+                    <button
+                      class="text-primary hover:text-primary/80 text-sm"
+                      @click="editTask(task)"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      class="text-red-600 hover:text-red-800 text-sm"
+                      @click="confirmDeleteTask(task)"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <!-- Submissions Tab -->
       <div v-if="activeTab === 'submissions'" class="p-4 md:p-6">
         <h2 class="text-xl font-semibold mb-4">Submissions & Judging</h2>
@@ -349,6 +426,114 @@
         </div>
       </div>
     </div>
+
+    <!-- Create/Edit Task Modal -->
+    <div
+      v-if="showCreateTaskModal || showEditTaskModal"
+      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+    >
+      <div class="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] flex flex-col">
+        <div class="flex justify-between items-center mb-6">
+          <h3 class="text-xl font-semibold">
+            {{ showEditTaskModal ? 'Edit Task' : 'Create New Task' }}
+          </h3>
+          <button class="text-gray-500 hover:text-gray-700" @click="closeTaskModal">
+            <Icon name="heroicons:x-mark" class="w-6 h-6" />
+          </button>
+        </div>
+
+        <form class="flex flex-col flex-1 overflow-hidden" @submit.prevent="saveTask">
+          <div class="space-y-4 overflow-y-auto flex-1 pr-2">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Title</label>
+              <input
+                v-model="taskForm.title"
+                type="text"
+                required
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Category</label>
+              <select
+                v-model="taskForm.category"
+                required
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                <option value="">Select a category</option>
+                <option value="Test">Test</option>
+                <option value="Project Management">Project Management</option>
+                <option value="Backend">Backend</option>
+                <option value="Frontend">Frontend</option>
+                <option value="Sales">Sales</option>
+                <option value="Business Analysis">Business Analysis</option>
+                <option value="BUL/Sales">BUL/Sales</option>
+                <option value="Communication">Communication</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Description</label>
+              <textarea
+                v-model="taskForm.description"
+                rows="4"
+                required
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+              ></textarea>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                  Estimated Time (minutes)
+                </label>
+                <input
+                  v-model.number="taskForm.estimatedTime"
+                  type="number"
+                  min="1"
+                  required
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Difficulty</label>
+                <select
+                  v-model.number="taskForm.difficulty"
+                  required
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <option value="">Select difficulty</option>
+                  <option value="1">1 - Easy</option>
+                  <option value="2">2 - Medium</option>
+                  <option value="3">3 - Hard</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex justify-end gap-3 mt-6 pt-4 border-t">
+            <button
+              type="button"
+              class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300"
+              @click="closeTaskModal"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              :disabled="taskFormLoading"
+              class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+            >
+              {{
+                taskFormLoading ? 'Saving...' : showEditTaskModal ? 'Update Task' : 'Create Task'
+              }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -420,6 +605,7 @@ watch(
 )
 
 const teams = ref([])
+const tasks = ref([])
 const submissions = ref([])
 const stats = ref({
   totalTeams: 0,
@@ -432,9 +618,23 @@ const stats = ref({
 const showTeamDetailsModal = ref(false)
 const selectedTeam = ref(null)
 
+// Task management state
+const showCreateTaskModal = ref(false)
+const showEditTaskModal = ref(false)
+const taskFormLoading = ref(false)
+const selectedTask = ref(null)
+const taskForm = ref({
+  title: '',
+  category: '',
+  description: '',
+  estimatedTime: 30,
+  difficulty: 1,
+})
+
 const tabs = [
   { id: 'settings', label: 'Competition Settings' },
   { id: 'teams', label: 'Teams' },
+  { id: 'tasks', label: 'Tasks' },
   { id: 'submissions', label: 'Submissions' },
   { id: 'leaderboard', label: 'Leaderboard' },
 ]
@@ -461,6 +661,10 @@ function getTeamActiveCount(teamId: string) {
     .length
 }
 
+function getTaskSubmissionCount(taskId: string) {
+  return submissions.value.filter(sub => sub.taskId === taskId).length
+}
+
 function formatDate(dateString: string) {
   return new Date(dateString).toLocaleDateString()
 }
@@ -473,6 +677,77 @@ function viewTeamDetails(team: any) {
 function reviewSubmission(submission: any) {
   // TODO: Implement submission review modal
   console.log('Review submission:', submission)
+}
+
+// Task management functions
+function editTask(task: any) {
+  selectedTask.value = task
+  taskForm.value = {
+    title: task.title,
+    category: task.category,
+    description: task.description,
+    estimatedTime: task.estimatedTime,
+    difficulty: task.difficulty,
+  }
+  showEditTaskModal.value = true
+}
+
+function confirmDeleteTask(task: any) {
+  if (confirm(`Are you sure you want to delete the task "${task.title}"?`)) {
+    deleteTask(task.id)
+  }
+}
+
+async function deleteTask(taskId: string) {
+  try {
+    await $fetch(`/api/tasks/${taskId}`, { method: 'DELETE' })
+    // Refresh tasks list
+    await fetchTasks()
+  } catch (error) {
+    console.error('Failed to delete task:', error)
+    alert('Failed to delete task')
+  }
+}
+
+async function saveTask() {
+  taskFormLoading.value = true
+  try {
+    if (showEditTaskModal.value && selectedTask.value) {
+      // Update existing task
+      await $fetch(`/api/tasks/${selectedTask.value.id}`, {
+        method: 'PUT',
+        body: taskForm.value,
+      })
+    } else {
+      // Create new task
+      await $fetch('/api/tasks', {
+        method: 'POST',
+        body: taskForm.value,
+      })
+    }
+
+    // Refresh tasks list
+    await fetchTasks()
+    closeTaskModal()
+  } catch (error) {
+    console.error('Failed to save task:', error)
+    alert('Failed to save task')
+  } finally {
+    taskFormLoading.value = false
+  }
+}
+
+function closeTaskModal() {
+  showCreateTaskModal.value = false
+  showEditTaskModal.value = false
+  selectedTask.value = null
+  taskForm.value = {
+    title: '',
+    category: '',
+    description: '',
+    estimatedTime: 30,
+    difficulty: 1,
+  }
 }
 
 // Competition control functions
@@ -589,6 +864,17 @@ function formatDateTime(dateString: string | null) {
   return new Date(dateString).toLocaleString()
 }
 
+async function fetchTasks() {
+  try {
+    console.log('📋 Fetching tasks...')
+    const tasksResponse = await $fetch('/api/tasks')
+    console.log('✅ Tasks response:', tasksResponse)
+    tasks.value = tasksResponse.tasks || []
+  } catch (error) {
+    console.error('❌ Failed to fetch tasks:', error)
+  }
+}
+
 async function fetchAdminData() {
   if (!isAdmin.value) {
     console.log('🚫 Not fetching admin data - user is not admin')
@@ -603,6 +889,9 @@ async function fetchAdminData() {
     const teamsResponse = await $fetch('/api/teams')
     console.log('✅ Teams response:', teamsResponse)
     teams.value = teamsResponse.teams
+
+    // Fetch tasks
+    await fetchTasks()
 
     // Fetch all submissions
     console.log('📋 Fetching submissions...')

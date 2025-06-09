@@ -15,12 +15,12 @@ export default defineEventHandler(async _event => {
         difficulty,
         "createdAt"
       FROM "Tasks"
-      ORDER BY category ASC, title ASC
+      ORDER BY category ASC, difficulty ASC, "estimatedTime" ASC, title ASC
     `)
 
     return {
       success: true,
-      data: results,
+      tasks: results,
     }
   } catch (error) {
     console.error('Error fetching tasks:', error)

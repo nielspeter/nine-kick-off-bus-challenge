@@ -6,7 +6,7 @@ import { initModels } from '~/server/models'
 export default defineEventHandler(async event => {
   try {
     console.log('🎯 Chat API called')
-    
+
     // Verify user session
     const session = await getServerSession(event)
     if (!session?.user?.email) {
@@ -16,7 +16,7 @@ export default defineEventHandler(async event => {
         statusMessage: 'Authentication required',
       })
     }
-    
+
     console.log('✅ User session verified:', session.user.email)
 
     const body = await readBody(event)
@@ -36,7 +36,7 @@ export default defineEventHandler(async event => {
     console.log('📊 Getting database connection...')
     const sequelize = await getDatabase()
     console.log('✅ Database connection acquired')
-    
+
     const { Submission, Task, Team } = initModels(sequelize)
     console.log('✅ Models initialized')
 
@@ -168,7 +168,7 @@ Remember: This is a creativity competition, so focus on innovative and unique ap
           console.error('❌ OpenAI API error details:', {
             status: response.status,
             statusText: response.statusText,
-            body: errorText
+            body: errorText,
           })
 
           // Return a user-friendly error message instead of throwing
@@ -177,8 +177,7 @@ Remember: This is a creativity competition, so focus on innovative and unique ap
             userErrorMessage =
               'The AI service is currently rate limited. Please try again in a moment.'
           } else if (response.status === 401) {
-            userErrorMessage =
-              'AI service authentication failed. Please contact support.'
+            userErrorMessage = 'AI service authentication failed. Please contact support.'
           } else if (response.status >= 500) {
             userErrorMessage =
               'The AI service is experiencing technical difficulties. Please try again later.'
@@ -231,11 +230,13 @@ Remember: This is a creativity competition, so focus on innovative and unique ap
           // Return a user-friendly error message instead of throwing
           let userErrorMessage = 'Sorry, the AI service is currently unavailable.'
           if (response.status === 429) {
-            userErrorMessage = 'The AI service is currently rate limited. Please try again in a moment.'
+            userErrorMessage =
+              'The AI service is currently rate limited. Please try again in a moment.'
           } else if (response.status === 401) {
             userErrorMessage = 'AI service authentication failed. Please contact support.'
           } else if (response.status >= 500) {
-            userErrorMessage = 'The AI service is experiencing technical difficulties. Please try again later.'
+            userErrorMessage =
+              'The AI service is experiencing technical difficulties. Please try again later.'
           }
 
           aiResponse = `⚠️ ${userErrorMessage}`
