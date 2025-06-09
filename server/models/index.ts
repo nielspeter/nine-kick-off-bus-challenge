@@ -62,6 +62,9 @@ export class Submission extends Model<
   declare chatHistory: CreationOptional<unknown[]>
   declare finalAnswers: CreationOptional<unknown[]>
   declare submittedAt: CreationOptional<Date | null>
+  declare rating: CreationOptional<number | null>
+  declare ratedBy: CreationOptional<string | null>
+  declare ratedAt: CreationOptional<Date | null>
   declare readonly createdAt: CreationOptional<Date>
   declare readonly updatedAt: CreationOptional<Date>
 }
@@ -214,6 +217,22 @@ export function initModels(sequelize: Sequelize) {
         defaultValue: [],
       },
       submittedAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
+      },
+      rating: {
+        type: DataTypes.DECIMAL(2, 1),
+        allowNull: true,
+        validate: {
+          min: 1.0,
+          max: 5.0,
+        },
+      },
+      ratedBy: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
+      ratedAt: {
         type: DataTypes.DATE,
         allowNull: true,
       },

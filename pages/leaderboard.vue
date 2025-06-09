@@ -60,12 +60,27 @@
 
             <!-- Stats -->
             <div class="text-right">
-              <div class="text-2xl font-bold text-primary">
-                {{ team.completedChallenges }}
+              <div class="text-3xl font-bold text-primary">
+                {{ team.totalScore }}
               </div>
-              <div class="text-sm text-gray-600">Completed</div>
-              <div v-if="team.activeChallenges > 0" class="text-sm text-blue-600 mt-1">
-                {{ team.activeChallenges }} in progress
+              <div class="text-sm text-gray-600">Total Score</div>
+
+              <div class="mt-2 space-y-1">
+                <div class="text-sm text-gray-800">
+                  {{ team.completedChallenges }} completed
+                  <span v-if="team.avgRating > 0" class="text-yellow-600">
+                    × {{ team.avgRating }}⭐
+                  </span>
+                </div>
+                <div
+                  v-if="team.ratedSubmissions < team.completedChallenges"
+                  class="text-xs text-orange-600"
+                >
+                  {{ team.completedChallenges - team.ratedSubmissions }} awaiting rating
+                </div>
+                <div v-if="team.activeChallenges > 0" class="text-sm text-blue-600">
+                  {{ team.activeChallenges }} in progress
+                </div>
               </div>
             </div>
           </div>

@@ -240,6 +240,37 @@ CREATE TABLE IF NOT EXISTS "Tasks" (
     "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS "Teams" (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL UNIQUE,
+    "captainId" VARCHAR(255) REFERENCES "Users"(id),
+    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS "TeamMembers" (
+    "TeamId" UUID REFERENCES "Teams"(id) ON DELETE CASCADE,
+    "UserId" VARCHAR(255) REFERENCES "Users"(id) ON DELETE CASCADE,
+    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY ("TeamId", "UserId")
+);
+
+CREATE TABLE IF NOT EXISTS "Submissions" (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    "teamId" UUID NOT NULL REFERENCES "Teams"(id),
+    "taskId" UUID NOT NULL REFERENCES "Tasks"(id),
+    status VARCHAR(50) DEFAULT 'in_progress' CHECK (status IN ('in_progress', 'completed')),
+    "chatHistory" JSONB DEFAULT '[]'::jsonb,
+    "finalAnswers" JSONB DEFAULT '[]'::jsonb,
+    "submittedAt" TIMESTAMP WITH TIME ZONE,
+    rating DECIMAL(2,1) CHECK (rating >= 1.0 AND rating <= 5.0),
+    "ratedBy" VARCHAR(255),
+    "ratedAt" TIMESTAMP WITH TIME ZONE,
+    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS "CompetitionSettings" (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     "isStarted" BOOLEAN DEFAULT FALSE,

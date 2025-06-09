@@ -307,17 +307,40 @@
             class="border rounded-lg p-4 hover:shadow-md transition-shadow"
           >
             <div class="flex justify-between items-start mb-3">
-              <div>
+              <div class="flex-1">
                 <h3 class="font-semibold">{{ submission.task?.title }}</h3>
                 <p class="text-gray-600">{{ submission.team?.name }}</p>
                 <p class="text-sm text-gray-500">
                   Submitted: {{ formatDate(submission.submittedAt) }}
                 </p>
+                <div v-if="submission.ratedAt" class="text-xs text-green-600 mt-1">
+                  Rated {{ formatDate(submission.ratedAt) }} by {{ submission.ratedBy }}
+                </div>
               </div>
-              <div class="flex items-center gap-2">
+              <div class="flex items-center gap-3">
                 <span class="bg-gray-100 text-gray-800 px-2 py-1 rounded text-sm">
                   {{ submission.task?.category }}
                 </span>
+
+                <!-- Star Rating Component -->
+                <div class="flex flex-col items-center">
+                  <div class="flex items-center gap-1 mb-1">
+                    <button
+                      v-for="star in 5"
+                      :key="star"
+                      :disabled="ratingLoading[submission.id]"
+                      class="text-xl transition-colors hover:scale-110 disabled:opacity-50"
+                      :class="getRatingStarClass(submission.rating, star)"
+                      @click="rateSubmission(submission.id, star)"
+                    >
+                      {{ getRatingStarIcon(submission.rating, star) }}
+                    </button>
+                  </div>
+                  <div class="text-xs text-gray-500">
+                    {{ submission.rating ? `${submission.rating}/5` : 'Not rated' }}
+                  </div>
+                </div>
+
                 <button
                   class="bg-primary text-white px-3 py-1 rounded text-sm hover:bg-primary/90"
                   @click="reviewSubmission(submission)"
@@ -355,9 +378,12 @@
             </div>
             <div class="text-right">
               <div class="text-xl font-bold text-primary">
-                {{ team.completedCount }}
+                {{ team.totalScore }}
               </div>
-              <div class="text-sm text-gray-600">challenges completed</div>
+              <div class="text-sm text-gray-600">total score</div>
+              <div class="text-xs text-gray-500 mt-1">
+                {{ team.completedCount }} completed × {{ team.avgRating || 'unrated' }}⭐
+              </div>
             </div>
           </div>
         </div>
@@ -614,6 +640,9 @@ const stats = ref({
   activeSubmissions: 0,
 })
 
+// Rating state
+const ratingLoading = ref({})
+
 // Team details modal state
 const showTeamDetailsModal = ref(false)
 const selectedTeam = ref(null)
@@ -648,8 +677,10 @@ const leaderboard = computed(() => {
     .map(team => ({
       ...team,
       completedCount: getTeamCompletedCount(team.id),
+      avgRating: getTeamAvgRating(team.id),
+      totalScore: calculateTeamScore(team.id),
     }))
-    .sort((a, b) => b.completedCount - a.completedCount)
+    .sort((a, b) => b.totalScore - a.totalScore)
 })
 
 function getTeamCompletedCount(teamId: string) {
@@ -665,6 +696,22 @@ function getTaskSubmissionCount(taskId: string) {
   return submissions.value.filter(sub => sub.taskId === taskId).length
 }
 
+function getTeamAvgRating(teamId: string) {
+  const teamSubmissions = submissions.value.filter(
+    sub => sub.teamId === teamId && sub.status === 'completed' && sub.rating !== null
+  )
+  if (teamSubmissions.length === 0) return 0
+  const sum = teamSubmissions.reduce((acc, sub) => acc + (sub.rating || 0), 0)
+  return parseFloat((sum / teamSubmissions.length).toFixed(1))
+}
+
+function calculateTeamScore(teamId: string) {
+  const completedCount = getTeamCompletedCount(teamId)
+  const avgRating = getTeamAvgRating(teamId)
+  const qualityMultiplier = avgRating > 0 ? avgRating : completedCount > 0 ? 3 : 0
+  return parseFloat((completedCount * qualityMultiplier).toFixed(1))
+}
+
 function formatDate(dateString: string) {
   return new Date(dateString).toLocaleDateString()
 }
@@ -677,6 +724,45 @@ function viewTeamDetails(team: any) {
 function reviewSubmission(submission: any) {
   // TODO: Implement submission review modal
   console.log('Review submission:', submission)
+}
+
+// Rating functions
+async function rateSubmission(submissionId: string, rating: number) {
+  ratingLoading.value[submissionId] = true
+  try {
+    const response = (await $fetch(`/api/submissions/${submissionId}/rate`, {
+      method: 'POST',
+      body: { rating },
+    })) as any
+
+    // Update the submission in the local array
+    const submissionIndex = submissions.value.findIndex(sub => sub.id === submissionId)
+    if (submissionIndex !== -1) {
+      submissions.value[submissionIndex] = {
+        ...submissions.value[submissionIndex],
+        rating: response.data.rating,
+        ratedBy: response.data.ratedBy,
+        ratedAt: response.data.ratedAt,
+      }
+    }
+
+    console.log('Submission rated successfully:', response)
+  } catch (error) {
+    console.error('Failed to rate submission:', error)
+    alert('Failed to rate submission')
+  } finally {
+    ratingLoading.value[submissionId] = false
+  }
+}
+
+function getRatingStarIcon(currentRating: number | null, starPosition: number): string {
+  if (!currentRating) return '☆'
+  return currentRating >= starPosition ? '★' : '☆'
+}
+
+function getRatingStarClass(currentRating: number | null, starPosition: number): string {
+  if (!currentRating) return 'text-gray-300 hover:text-yellow-400'
+  return currentRating >= starPosition ? 'text-yellow-400' : 'text-gray-300 hover:text-yellow-400'
 }
 
 // Task management functions
