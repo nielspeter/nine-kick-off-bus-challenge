@@ -215,6 +215,9 @@ async function generateSQL() {
 -- Generated on ${new Date().toISOString()}
 -- Total employees: ${employees.length}
 
+-- Create database if it doesn't exist
+CREATE DATABASE kickoff_challenge;
+
 \\c kickoff_challenge;
 
 -- Ensure tables exist
