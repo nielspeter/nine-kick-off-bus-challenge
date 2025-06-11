@@ -65,6 +65,34 @@ services:
       retries: 3
       start_period: 40s
 
+  # Nuxt 3 Production Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nine-kickoff-app
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - NITRO_HOST=0.0.0.0
+      - NITRO_PORT=3000
+      - DATABASE_URL=postgresql://nineuser:ninepass@postgres:5432/kickoff_challenge
+      - REDIS_URL=redis://redis:6379
+      - LITELLM_BASE_URL=http://litellm:4000
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      litellm:
+        condition: service_healthy
+    networks:
+      - nine-network
+    restart: unless-stopped
+
   # Adminer for database management (optional)
   adminer:
     image: adminer:4
